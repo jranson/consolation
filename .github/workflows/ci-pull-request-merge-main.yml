@@ -12,10 +12,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     if: github.repository_owner == 'centennial-oss'
-    runs-on: macos-15
+    runs-on: macos-26
     env:
       APP_NAME: Consolation
       SCHEME_NAME: Consolation
@@ -42,6 +45,9 @@ jobs:
           ARCH="arm64" \
           make generate-build-info
 
+      # `make build` lints (including `check-no-team` and the SwiftLint self-test), runs the unit tests, and builds the
+      # Debug app for macOS and the iPad simulator. Merges to main also build the unsigned Release apps.
+      # An nasm install and an FFmpeg build cache arrive with the playback packages in Consolation 2.0.
       - name: Run clean, test, and build
         run: |
           make clean test ${{ github.event_name == 'pull_request' && 'build' || 'build-release-unsigned' }}

@@ -276,14 +276,18 @@ jobs:
           ARCH="${{ inputs.build_info_arch }}" \
           make generate-build-info
 
+      # The project names no team (`make check-no-team`), so the release builds pass it explicitly.
       - name: Build ${{ env.APP_NAME }} for direct distribution (GitHub release)
         if: inputs.include_github_release
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           xcodebuild -scheme ${{ env.SCHEME_NAME }} \
             -configuration Release \
             -derivedDataPath build \
             -destination 'generic/platform=macOS' \
             ARCHS="arm64 x86_64" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             CODE_SIGN_IDENTITY="-" \
             clean build
 

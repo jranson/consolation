@@ -50,12 +50,36 @@ Consolation has been tested by the developers on Intel and Apple Silicon Macs an
 
 ### Developer
 
-- Xcode 26.4 or higher, including Command Line Tools
+- Xcode 26.4 or higher, including Command Line Tools and the iOS platform
+- SwiftLint (`brew install swiftlint`)
 
 ## Building
 
-1. Open `Consolation.xcodeproj` in Xcode.
-2. Build and run.
+```bash
+make build
+```
+
+`make build` lints, runs the unit tests, and builds the macOS app (`build/Consolation.app`) plus an iPad simulator app (`build/Consolation-iOS.app`). You can also open `Consolation.xcodeproj` in Xcode, choose the Consolation scheme and a destination, and run it (⌘R).
+
+### Running on each platform
+
+| Platform | Command |
+|---|---|
+| Mac | `make run-macos` opens the app built by `make build` (`make build-run-macos` builds first) |
+| iPad simulator | `make run-sim-ipad` builds, boots the simulator and launches. Simulators have no capture devices, so this only checks layout |
+| A real iPad | `make run-device DEVICE="<name>"` builds for the device, installs, launches and shows its console in your terminal. It needs your team in `Local.xcconfig` (below), and the iPad paired with Xcode and in Developer Mode; `xcrun devicectl list devices` lists names |
+
+`ARGS="..."` adds launch arguments to any run target.
+
+The project doesn't set a development team, so Xcode signs local builds with "Sign to Run Locally" and you don't need an Apple developer account to contribute. If you'd rather sign with your own team (for example, so macOS remembers Consolation's camera and microphone permissions between builds), create an untracked `Local.xcconfig` in the repository root:
+
+```
+DEVELOPMENT_TEAM = YOURTEAMID
+```
+
+With that file in place, `make build` signs the macOS app with your team too (Xcode must be signed in to that team's account so it can create a development certificate).
+
+Please don't set a team in Xcode's Signing & Capabilities tab, because that writes it into the project file. `make lint` fails if the project file or a checked-in `.xcconfig` names a team.
 
 ## Tech Stack
 

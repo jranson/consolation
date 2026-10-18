@@ -1,0 +1,81 @@
+# SwiftLint: https://github.com/realm/SwiftLint
+# Run `make lint` (requires SwiftLint: `brew install swiftlint`).
+# `make lint` passes `--strict` so warnings fail CI (avoid `swiftlint --fix` without review).
+
+included:
+  - Consolation
+  - ConsolationTests
+  - ConsolationUITests
+
+excluded:
+  - build
+  - dist
+  - .build
+  - localdata
+  - Packages/*/.build
+
+identifier_name:
+  min_length: 3
+  excluded:
+    - id
+    - url
+
+opt_in_rules:
+  - closure_spacing
+  - empty_count
+  - empty_string
+  - explicit_init
+  - fatal_error_message
+  - first_where
+  - identical_operands
+  - operator_usage_whitespace
+  - redundant_nil_coalescing
+  - sorted_first_last
+  - toggle_bool
+  - unneeded_parentheses_in_closure_argument
+  - yoda_condition
+
+line_length:
+  warning: 120
+  error: 120
+  ignores_urls: true
+  ignores_comments: true
+
+file_length:
+  warning: 400
+  error: 400
+
+function_body_length:
+  warning: 150
+  error: 150
+
+type_body_length:
+  warning: 400
+  error: 400
+
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+
+# Only VideoCard may go on a Consolation shelf. The app names the typealiases (VideoShelf, VideoEtagere, ...);
+# EtagereKit itself is generic and comes from its own repository (github.com/centennial-oss/EtagereKit), so it is
+# never linted here. Nothing uses EtagereKit yet; the rules are here first so they hold from the first shelf.
+# `make lint-selftest` (part of `make lint`) proves they still fire, on fixtures in scripts/lint-selftest that
+# `make lint` never sees.
+custom_rules:
+  etagere_video_cards_only:
+    name: "Consolation shelves hold VideoCard only"
+    regex: '\b(Etagere|EtagereModel|Shelf|ShelfState|ShelfCard|ShelfRingView)<(?!VideoCard\b)'
+    match_kinds: [identifier, typeidentifier]
+    message: "Use VideoEtagere / VideoShelf; only VideoCard may go on a Consolation shelf."
+    severity: error
+  # The rule above can't see inferred generics (`Shelf(id: "x", title: "X", cards: [GameBox()])`), so this one keeps
+  # any other card type from existing at all: only VideoCard, in Consolation/Etagere/, may name ShelfCardContent.
+  # The local packages are excluded. `make lint-selftest` proves it fires too.
+  etagere_card_conformance:
+    name: "VideoCard is the only Consolation card type"
+    regex: '\bShelfCardContent\b'
+    match_kinds: [identifier, typeidentifier]
+    excluded: '/Consolation/Etagere/|/Packages/'
+    message: "Only VideoCard (Consolation/Etagere/) may conform to ShelfCardContent; add a VideoCard.Kind instead."
+    severity: error
