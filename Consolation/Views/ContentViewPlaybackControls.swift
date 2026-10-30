@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import SwiftUI
 
 extension ContentView {
@@ -264,3 +265,4 @@ struct PlaybackToolbarDivider: View {
             .frame(height: 32)
     }
 }
+#endif

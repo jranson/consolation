@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import SwiftUI
 
 struct HelpConsolationView: View {
@@ -119,3 +120,4 @@ struct HelpConsolationView: View {
 #Preview {
     HelpConsolationView {}
 }
+#endif

@@ -1,0 +1,12 @@
+[
+  {"GuideNumber": "8.1", "URL": "http://192.0.2.10:5004/auto/v8.1"},
+  {"GuideNumber": 702, "GuideName": "NUMERIC", "HD": "1", "Favorite": true, "SignalStrength": "71",
+   "FutureKey": {"nested": [1, 2, 3]}, "URL": "http://192.0.2.10:5004/auto/v702"},
+  {"GuideNumber": "8.3", "GuideName": "BADVALUES", "HD": "maybe", "Favorite": [1], "Frequency": 1e30,
+   "SignalQuality": "high", "URL": "not a url", "VideoCodec": "VP9", "AudioCodec": "EAC3"},
+  {"GuideName": "NO-NUMBER", "URL": "http://192.0.2.10:5004/auto/v0.0"},
+  "not an object",
+  42,
+  null,
+  {"GuideNumber": "8.4", "GuideName": "FLAGS", "Enabled": "0", "Subscribed": false, "DRM": 1.0}
+]

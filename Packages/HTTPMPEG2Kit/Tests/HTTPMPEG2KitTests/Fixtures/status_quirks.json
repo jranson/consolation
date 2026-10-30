@@ -1,0 +1,8 @@
+[
+  {"Resource": "tuner0", "TargetIP": "[2001:db8::30]", "NetworkRate": 1000000},
+  {"Resource": "tuner1", "VctNumber": "", "TargetIP": "", "FutureKey": true},
+  {"Resource": "tuner2", "VctNumber": 9.1, "VctName": "KUSA-HD", "SignalStrengthPercent": "54"},
+  {"VctNumber": "4.1"},
+  "garbage",
+  {"Resource": "tuner3", "Frequency": "605000000"}
+]

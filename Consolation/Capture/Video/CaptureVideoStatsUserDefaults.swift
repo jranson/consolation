@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import SwiftUI
 
 enum CaptureVideoStatsOverlayLocation: String, CaseIterable {
@@ -63,3 +64,4 @@ enum CaptureVideoStatsUserDefaults {
     nonisolated static let disableLowFPSWarningKey = AppIdentifier.scoped("disableLowFPSWarningOverlay")
     nonisolated static let defaultLocation = CaptureVideoStatsOverlayLocation.bottomLeft.rawValue
 }
+#endif

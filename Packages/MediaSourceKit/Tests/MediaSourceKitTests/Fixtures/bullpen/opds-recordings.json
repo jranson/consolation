@@ -1,0 +1,115 @@
+{
+  "metadata": {
+    "title": "Recordings",
+    "conformsTo": "https://centennialoss.org/bullpen/ns/video",
+    "itemsPerPage": 50
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "/opds/recordings.json",
+      "type": "application/opds+json"
+    },
+    {
+      "rel": "start",
+      "href": "/opds/root.json",
+      "type": "application/opds+json"
+    },
+    {
+      "rel": "search",
+      "href": "/opds/search.json{?query}",
+      "type": "application/opds+json",
+      "templated": true
+    },
+    {
+      "rel": "next",
+      "href": "/opds/recordings.json?cursor=EXAMPLE-CURSOR",
+      "type": "application/opds+json"
+    }
+  ],
+  "publications": [
+    {
+      "metadata": {
+        "@type": "http://schema.org/TVEpisode",
+        "identifier": "urn:uuid:01a16250-1111-7000-8000-000000000042",
+        "title": "Pilot",
+        "subtitle": "Example Show",
+        "description": "The first one.",
+        "published": "2026-10-11",
+        "modified": "2026-10-11T20:14:04Z",
+        "belongsTo": {
+          "series": [
+            {
+              "name": "Example Show",
+              "identifier": "crid://centennialoss.org/bullpen/series/01a16244-f82a-700d-a2d5-51c2a0000001",
+              "position": 1
+            }
+          ]
+        },
+        "https://centennialoss.org/bullpen/ns/video#season": 1,
+        "https://centennialoss.org/bullpen/ns/video#recordedAt": "2026-10-11T20:14:03Z",
+        "https://centennialoss.org/bullpen/ns/video#inProgress": true,
+        "https://centennialoss.org/bullpen/ns/video#channel": {
+          "identifier": "bullpen:ch/antenna-9-1",
+          "name": "KDDD-HD",
+          "broadcastChannelId": "9.1",
+          "callSign": "KDDD"
+        },
+        "https://centennialoss.org/bullpen/ns/video#audioChannels": 6,
+        "language": [
+          "en",
+          "es"
+        ]
+      },
+      "links": [
+        {
+          "href": "/s/v1.MTc5MjcyMDAwMA.YWxpY2U.L3JlY29yZGluZ3MvbG9jYWwv.EXAMPLE-SIGNATURE/recordings/local/01a16250-1111-7000-8000-000000000042/master.m3u8",
+          "type": "application/vnd.apple.mpegurl; codecs=\"avc1.640028,mp4a.40.2\"",
+          "rel": "http://opds-spec.org/acquisition/open-access",
+          "height": 1080,
+          "width": 1920,
+          "bitrate": 5210.4,
+          "alternate": [
+            {
+              "href": "/s/v1.MTc5MjcyMDAwMA.YWxpY2U.L3JlY29yZGluZ3MvbG9jYWwv.EXAMPLE-SIGNATURE/recordings/local/01a16250-1111-7000-8000-000000000042/manifest.mpd",
+              "type": "application/dash+xml; codecs=\"avc1.640028,mp4a.40.2\"",
+              "height": 1080,
+              "width": 1920,
+              "bitrate": 5210.4
+            }
+          ]
+        },
+        {
+          "href": "/api/v1/recordings/01a16250-1111-7000-8000-000000000042",
+          "type": "application/json",
+          "rel": "https://centennialoss.org/bullpen/rel/recording",
+          "title": "The recording (stop or extend it)"
+        }
+      ],
+      "images": [
+        {
+          "href": "https://img.home.example/s1e1.jpg"
+        }
+      ]
+    }
+  ],
+  "facets": [
+    {
+      "metadata": {
+        "title": "Show"
+      },
+      "links": [
+        {
+          "href": "/opds/recordings.json",
+          "type": "application/opds+json",
+          "title": "Every recording"
+        },
+        {
+          "href": "/opds/recordings.json?state=recording",
+          "type": "application/opds+json",
+          "title": "Recording now"
+        }
+      ]
+    }
+  ]
+}

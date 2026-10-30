@@ -1,0 +1,4 @@
+{"MediaContainer":{"size":2,"allowSync":false,"title1":"Plex Library","Directory":[
+ {"allowSync":true,"art":"/:/resources/show-fanart.jpg","composite":"/library/sections/2/composite/1792944000","filters":true,"refreshing":false,"thumb":"/:/resources/show.png","key":"2","type":"show","title":"DVR Recordings","agent":"tv.plex.agents.series","scanner":"Plex TV Series","language":"en-US","uuid":"00000000-0000-4000-8000-000000000002","updatedAt":1792944000,"createdAt":1615844359,"scannedAt":1792944000,"content":true,"directory":true,"contentChangedAt":1,"hidden":0,"Location":[{"id":2,"path":"/media/dvr"}]},
+ {"allowSync":true,"key":"3","type":"movie","title":"Movies","agent":"tv.plex.agents.movie","scanner":"Plex Movie","language":"en-US","uuid":"00000000-0000-4000-8000-000000000003","updatedAt":1792944000,"createdAt":1615844359,"scannedAt":1792944000,"content":true,"directory":true,"hidden":0,"Location":[{"id":3,"path":"/media/movies"}]}
+]}}

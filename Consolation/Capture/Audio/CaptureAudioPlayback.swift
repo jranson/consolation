@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import AVFoundation
 import AudioToolbox
 import Foundation
@@ -298,3 +299,4 @@ nonisolated final class CaptureAudioPlayback: NSObject,
         return mutedFlag ? 0 : volumeLevel
     }
 }
+#endif

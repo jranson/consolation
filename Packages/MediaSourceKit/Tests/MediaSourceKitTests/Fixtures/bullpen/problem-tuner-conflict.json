@@ -1,0 +1,73 @@
+{
+  "type": "https://centennialoss.org/bullpen/problems/tuner-conflict",
+  "title": "No tuner is free",
+  "status": 409,
+  "detail": "every tuner is booked from 20:00 to 21:00",
+  "conflicts": [
+    {
+      "id": "01a16250-1111-7000-8000-000000000050",
+      "state": "scheduled",
+      "channel": "bullpen:ch/antenna-4-1",
+      "programme": "crid://centennialoss.org/bullpen/ep/01a16244-f82a-700d-a2d5-287f2fe44f6b",
+      "series": "crid://centennialoss.org/bullpen/series/01a16244-f82a-700d-a2d5-51c2a0000001",
+      "title": "Other Show",
+      "episodeTitle": "Finale",
+      "from": "2026-10-11T20:00:00Z",
+      "until": "2026-10-11T21:00:00Z",
+      "padding": {
+        "before": "PT1M",
+        "after": "PT5M"
+      },
+      "links": [
+        {
+          "rel": "self",
+          "href": "/api/v1/recordings/01a16250-1111-7000-8000-000000000050"
+        }
+      ]
+    }
+  ],
+  "alternatives": [
+    {
+      "@type": "BroadcastEvent",
+      "identifier": "crid://centennialoss.org/bullpen/ep/01a16244-f82a-700d-a2d5-287f2fe44f6b",
+      "startDate": "2026-10-12T02:00:00Z",
+      "endDate": "2026-10-12T03:00:00Z",
+      "publishedOn": {
+        "@id": "bullpen:ch/antenna-9-1"
+      },
+      "isLiveBroadcast": false,
+      "videoFormat": "HD",
+      "subtitleLanguage": [
+        "en"
+      ],
+      "workPerformed": {
+        "@type": "TVEpisode",
+        "name": "Pilot",
+        "episodeNumber": 1,
+        "partOfSeason": {
+          "seasonNumber": 1
+        },
+        "partOfSeries": {
+          "@type": "TVSeries",
+          "name": "Example Show",
+          "identifier": "crid://centennialoss.org/bullpen/series/01a16244-f82a-700d-a2d5-51c2a0000001"
+        },
+        "datePublished": "2026-10-11",
+        "isNew": true,
+        "sameAs": [
+          "tms:EP000000000001"
+        ]
+      },
+      "links": [
+        {
+          "rel": "https://centennialoss.org/bullpen/rel/record",
+          "href": "/api/v1/recordings"
+        },
+        {
+          "rel": "https://centennialoss.org/bullpen/rel/record-series",
+          "href": "/api/v1/recording-rules"
+        }
+      ]
+    }
+  ]
+}

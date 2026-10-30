@@ -1,0 +1,28 @@
+[
+  {
+    "Resource": "tuner0",
+    "Frequency": 605000000,
+    "SignalStrengthPercent": 59,
+    "SignalQualityPercent": 99,
+    "SymbolQualityPercent": 100,
+    "TargetIP": "192.0.2.30",
+    "NetworkRate": 10009760
+  },
+  {
+    "Resource": "tuner1"
+  },
+  {
+    "Resource": "tuner2",
+    "VctNumber": "7.1",
+    "VctName": "KMGH",
+    "Frequency": 177000000,
+    "SignalStrengthPercent": 48,
+    "SignalQualityPercent": 54,
+    "SymbolQualityPercent": 100,
+    "TargetIP": "192.0.2.44",
+    "NetworkRate": 3539040
+  },
+  {
+    "Resource": "tuner3"
+  }
+]

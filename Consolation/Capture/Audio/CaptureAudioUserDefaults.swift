@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import Foundation
 
 /// Persisted separately from any future `volumeLevel` slider so mute/unmute does not clobber stored volume.
@@ -51,3 +52,4 @@ enum CaptureAudioUserDefaults {
         UserDefaults.standard.set(length, forKey: bufferLengthKey)
     }
 }
+#endif

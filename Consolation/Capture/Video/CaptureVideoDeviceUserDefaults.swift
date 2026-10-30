@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import Foundation
 
 enum CaptureVideoDeviceUserDefaults {
@@ -21,3 +22,4 @@ enum CaptureVideoDeviceUserDefaults {
         }
     }
 }
+#endif

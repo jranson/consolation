@@ -18,7 +18,9 @@ permissions:
 jobs:
   build-and-test:
     if: github.repository_owner == 'centennial-oss'
-    runs-on: macos-26
+    # Xcode 27 (the tvOS 27 SDK) is only on GitHub's `xcode-27` image, in public preview as of 2026-10; the
+    # `macos-26` image stops at Xcode 26.6.
+    runs-on: xcode-27
     env:
       APP_NAME: Consolation
       SCHEME_NAME: Consolation
@@ -29,13 +31,35 @@ jobs:
         with:
           fetch-depth: 0
 
+      # The Xcode developers build with; raise it with the project.
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: 'latest-stable'
+          xcode-version: '27.0'
 
       - name: Install SwiftLint
         run: brew install swiftlint
+
+      # The FFmpeg build (`make ffmpeg`) needs nasm for its x86_64 slices. Its output is cached under a key made of
+      # the FFmpeg version, the Xcode version and the build script's hash, the same inputs as its stamp file, so a
+      # cache hit makes `make ffmpeg` a no-op (`make clean` keeps both cached folders).
+      - name: Install nasm
+        run: brew install nasm
+
+      - name: FFmpeg cache key
+        id: ffmpeg-key
+        run: |
+          version="$(sed -n 's/^FFMPEG_VERSION="\(.*\)"$/\1/p' scripts/build-ffmpeg.sh)"
+          xcode="$(xcodebuild -version | tr '\n' ' ' | sed 's/ *$//' | tr ' ' '-')"
+          echo "key=ffmpeg-${version}-${xcode}-${{ hashFiles('scripts/build-ffmpeg.sh') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore FFmpeg build
+        uses: actions/cache@v4
+        with:
+          path: |
+            Packages/PlaybackKit/Frameworks
+            build/ffmpeg-cache
+          key: ${{ steps.ffmpeg-key.outputs.key }}
 
       - name: Generate build info for CI
         run: |
@@ -45,9 +69,9 @@ jobs:
           ARCH="arm64" \
           make generate-build-info
 
-      # `make build` lints (including `check-no-team` and the SwiftLint self-test), runs the unit tests, and builds the
-      # Debug app for macOS and the iPad simulator. Merges to main also build the unsigned Release apps.
-      # An nasm install and an FFmpeg build cache arrive with the playback packages in Consolation 2.0.
+      # `make build` lints (including `check-no-team` and the SwiftLint self-test), runs the package and app unit
+      # tests, and builds the Debug app for macOS and the iOS and tvOS simulators. Merges to main also build the
+      # unsigned Release apps for all three.
       - name: Run clean, test, and build
         run: |
           make clean test ${{ github.event_name == 'pull_request' && 'build' || 'build-release-unsigned' }}

@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import Foundation
 
 enum CaptureState: Equatable, Sendable {
@@ -28,3 +29,4 @@ enum CaptureState: Equatable, Sendable {
         }
     }
 }
+#endif

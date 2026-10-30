@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import AVFoundation
 import Foundation
 
@@ -65,3 +66,4 @@ enum CaptureVideoFormatMenuRates: Sendable {
             .map(\.value)
     }
 }
+#endif

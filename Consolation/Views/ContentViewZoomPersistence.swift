@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import SwiftUI
 
 extension ContentView {
@@ -62,3 +63,4 @@ extension ContentView {
         CaptureVideoZoomUserDefaults.savePreviewZoomLevel(zoomLevel, forDeviceID: deviceID)
     }
 }
+#endif

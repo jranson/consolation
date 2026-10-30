@@ -1,3 +1,4 @@
+#if !os(tvOS)
 import SwiftUI
 
 extension ContentView {
@@ -79,3 +80,4 @@ extension ContentView {
 #Preview {
     ContentView(capture: CaptureSessionManager())
 }
+#endif

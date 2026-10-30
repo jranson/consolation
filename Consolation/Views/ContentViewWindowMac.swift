@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import SwiftUI
 
 #if os(macOS)
@@ -255,4 +256,5 @@ extension ContentView {
         return clampedFrame
     }
 }
+#endif
 #endif

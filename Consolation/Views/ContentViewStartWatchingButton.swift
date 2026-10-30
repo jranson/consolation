@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import SwiftUI
 
 struct ContentViewStartWatchingButton: View {
@@ -37,3 +38,4 @@ struct ContentViewStartWatchingButton: View {
         .accessibilityLabel("Start Video")
     }
 }
+#endif

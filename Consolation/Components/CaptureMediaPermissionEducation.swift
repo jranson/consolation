@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import AVFoundation
 import Foundation
 import SwiftUI
@@ -81,3 +82,4 @@ struct CaptureMediaPermissionEducationNotice: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 }
+#endif

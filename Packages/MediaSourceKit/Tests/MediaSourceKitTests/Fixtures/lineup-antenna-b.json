@@ -1,0 +1,5 @@
+[
+  {"GuideNumber": "4.1", "GuideName": "KBBB-TV", "VideoCodec": "MPEG2", "AudioCodec": "AC3", "HD": 1, "URL": "http://192.0.2.11:5004/auto/v4.1"},
+  {"GuideNumber": "9.1", "GuideName": "KDDD-HD", "VideoCodec": "MPEG2", "AudioCodec": "AC3", "HD": 1, "Favorite": 1, "URL": "http://192.0.2.11:5004/auto/v9.1"},
+  {"GuideNumber": "13.1", "GuideName": "KIII", "VideoCodec": "MPEG2", "AudioCodec": "AC3", "URL": "http://192.0.2.11:5004/auto/v13.1"}
+]

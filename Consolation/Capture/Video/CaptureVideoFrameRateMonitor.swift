@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import AVFoundation
 import Foundation
 
@@ -80,3 +81,4 @@ nonisolated final class CaptureVideoFrameRateMonitor: NSObject, AVCaptureVideoDa
         droppedFrameCount += 1
     }
 }
+#endif

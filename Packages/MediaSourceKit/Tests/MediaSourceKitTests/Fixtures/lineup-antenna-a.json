@@ -1,0 +1,11 @@
+[
+  {"GuideNumber": "20.1", "GuideName": "KCCC-HD", "VideoCodec": "MPEG2", "AudioCodec": "AC3", "HD": 1, "URL": "http://192.0.2.10:5004/auto/v20.1"},
+  {"GuideNumber": "2.1", "GuideName": "KAAA-DT", "VideoCodec": "MPEG2", "AudioCodec": "AC3", "HD": 1, "Favorite": 1, "URL": "http://192.0.2.10:5004/auto/v2.1"},
+  {"GuideNumber": "4.1", "GuideName": "KBBB-TV", "VideoCodec": "MPEG2", "AudioCodec": "AC3", "HD": 1, "Favorite": 1, "URL": "http://192.0.2.10:5004/auto/v4.1"},
+  {"GuideNumber": "9.1", "GuideName": "KDDD-HD", "VideoCodec": "MPEG2", "AudioCodec": "AC3", "HD": 1, "URL": "http://192.0.2.10:5004/auto/v9.1"},
+  {"GuideNumber": "20.4", "GuideName": "KCCC-4", "VideoCodec": "MPEG2", "AudioCodec": "AC3", "Tags": "favorite", "URL": "http://192.0.2.10:5004/auto/v20.4"},
+  {"GuideNumber": "31.1", "GuideName": "KEEE-DT", "VideoCodec": "H264", "AudioCodec": "AAC", "HD": 1, "URL": "http://192.0.2.10:5004/auto/v31.1"},
+  {"GuideNumber": "7.1", "GuideName": "KFFF-DRM", "VideoCodec": "MPEG2", "AudioCodec": "AC3", "DRM": 1, "Favorite": 1, "URL": "http://192.0.2.10:5004/auto/v7.1"},
+  {"GuideNumber": "102.1", "GuideName": "KGGG-30", "VideoCodec": "HEVC", "AudioCodec": "AC4", "HD": 1, "URL": "http://192.0.2.10:5004/auto/v102.1"},
+  {"GuideNumber": "11.1", "GuideName": "KHHH", "VideoCodec": "MPEG2", "AudioCodec": "AC3", "Subscribed": 0}
+]

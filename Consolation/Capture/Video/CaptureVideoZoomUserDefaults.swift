@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import Foundation
 
 private enum CaptureVideoZoomDeviceUserDefaultsKeys {
@@ -31,3 +32,4 @@ enum CaptureVideoZoomUserDefaults {
         "\(prefix).\(deviceID)"
     }
 }
+#endif

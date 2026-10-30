@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import AVFoundation
 import Foundation
 
@@ -56,3 +57,4 @@ enum CaptureVideoDeviceDiscovery {
         #endif
     }
 }
+#endif

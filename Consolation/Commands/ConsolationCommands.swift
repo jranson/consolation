@@ -2,18 +2,17 @@
 //  ConsolationCommands.swift
 //  Consolation
 //
-//  The menu bar on macOS and the hardware keyboard's ⌘ overlay on iPad. Audio and capture commands act on
-//  `CaptureSessionManager` directly; About, Help and window sizing post notifications to the viewer window.
+//  The Capture Card commands in the menu bar on macOS and the hardware keyboard's ⌘ overlay on iPad, beside the
+//  shell's own (`ShellCommands`). Audio and capture commands act on `CaptureSessionManager` directly; About and
+//  Help open over the window in front, and window sizing posts a notification to the viewer.
 //
 
+#if !os(tvOS)
 import SwiftUI
 
-extension Notification.Name {
-    static let showAboutCommand = Notification.Name(AppIdentifier.scoped("showAboutCommand"))
-    static let showHelpCommand = Notification.Name(AppIdentifier.scoped("showHelpCommand"))
-}
-
 struct ConsolationCommands: Commands {
+    /// The shell of the window in front; nil with no window.
+    @FocusedValue(ShellModel.self) private var shell
     let capture: CaptureSessionManager
     /// Bumped by the app after a rotation or mirror change, so the checkmarks re-read the saved transform.
     let previewTransformMenuRevision: Int
@@ -28,19 +27,14 @@ struct ConsolationCommands: Commands {
     #endif
 
     var body: some Commands {
-        #if os(macOS)
-        CommandGroup(replacing: .newItem) {}
-        #endif
         CommandGroup(replacing: .appInfo) {
-            Button("About \(AppIdentifier.name)") {
-                NotificationCenter.default.post(name: .showAboutCommand, object: nil)
-            }
+            Button("About \(AppIdentifier.name)") { shell?.presentedSheet = .about }
+                .disabled(shell == nil)
         }
         CommandGroup(replacing: .help) {
-            Button("\(AppIdentifier.name) Help") {
-                NotificationCenter.default.post(name: .showHelpCommand, object: nil)
-            }
-            .keyboardShortcut("?", modifiers: [.command])
+            Button("\(AppIdentifier.name) Help") { shell?.presentedSheet = .help }
+                .keyboardShortcut("?", modifiers: [.command])
+                .disabled(shell == nil)
         }
         CommandGroup(after: .toolbar) {
             viewCommands
@@ -213,3 +207,4 @@ struct ConsolationCommands: Commands {
         .disabled(capture.selectedVideoDeviceUniqueID == nil)
     }
 }
+#endif

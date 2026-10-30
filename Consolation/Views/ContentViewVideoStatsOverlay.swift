@@ -1,3 +1,4 @@
+#if !os(tvOS)
 import Foundation
 import SwiftUI
 
@@ -144,3 +145,4 @@ struct MaxFPSWarningInfoView: View {
         .frame(minWidth: 340, maxWidth: 520, maxHeight: 360)
     }
 }
+#endif

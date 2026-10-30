@@ -1,3 +1,4 @@
+#if !os(tvOS)
 import SwiftUI
 #if os(macOS)
 import AppKit
@@ -121,7 +122,13 @@ struct ContentView: View {
         }
         .onDisappear {
             PlaybackDisplayWakeLock.setActive(false)
+            #if os(macOS)
+            // The window shows other panes now: it no longer keeps the video's shape.
+            resetWindowAspectRatio()
+            #endif
         }
+        // The shell hides its pill along with this chrome.
+        .preference(key: CaptureChromeHiddenKey.self, value: isUIHidden)
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 capture.refreshMediaCaptureAuthorizationStatuses()
@@ -149,12 +156,6 @@ struct ContentView: View {
             resetHoverTimer()
         }
         #endif
-        .onReceive(NotificationCenter.default.publisher(for: .showAboutCommand)) { _ in
-            isShowingAbout = true
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .showHelpCommand)) { _ in
-            isShowingHelp = true
-        }
         .sheet(isPresented: $isShowingAbout) {
             AboutConsolationView {
                 isShowingAbout = false
@@ -371,3 +372,4 @@ extension ContentView {
     }
 
 }
+#endif

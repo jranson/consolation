@@ -1,0 +1,8 @@
+{
+  "ScanInProgress": 1,
+  "ScanPossible": 1,
+  "Source": "Cable",
+  "SourceList": ["Antenna", "Cable", 7],
+  "Progress": 42,
+  "Found": 17
+}

@@ -1,0 +1,7 @@
+[
+  {"GuideNumber": "5.1", "GuideName": "LEGACY1", "Tags": "favorite", "URL": "http://192.0.2.10:5004/auto/v5.1"},
+  {"GuideNumber": "5.2", "GuideName": "LEGACY2", "Tags": "favorite,drm", "URL": "http://192.0.2.10:5004/auto/v5.2"},
+  {"GuideNumber": "5.3", "GuideName": "LEGACY3", "Tags": " DRM ", "URL": "http://192.0.2.10:5004/auto/v5.3"},
+  {"GuideNumber": "5.4", "GuideName": "LEGACY4", "Tags": "", "URL": "http://192.0.2.10:5004/auto/v5.4"},
+  {"GuideNumber": "5.5", "GuideName": "LEGACY5", "URL": "http://192.0.2.10:5004/auto/v5.5"}
+]

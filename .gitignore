@@ -1,6 +1,10 @@
 # Build output
 dist/
 build/
+.build/
+# Built by `make ffmpeg` (scripts/build-ffmpeg.sh); never committed.
+Packages/PlaybackKit/Frameworks/
+.swiftpm/
 
 # macOS
 .DS_Store
@@ -18,5 +22,6 @@ TODO.md
 
 .cursor
 
-# Per-developer signing team; see README.md.
+# Per-developer signing team and private-name list; see README.md and the Makefile.
 Local.xcconfig
+Local.private-names

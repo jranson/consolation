@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import AVFoundation
 import Foundation
 
@@ -339,3 +340,4 @@ private extension CaptureSessionBackend {
         #endif
     }
 }
+#endif

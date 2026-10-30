@@ -1,0 +1,4 @@
+{"MediaContainer":{"size":2,"totalSize":2,"offset":0,"librarySectionID":2,"librarySectionTitle":"DVR Recordings","Metadata":[
+ {"ratingKey":"101","key":"/library/metadata/101/children","guid":"plex://show/000000000000000000000101","type":"show","title":"Example News","summary":"The day's news.","index":1,"year":2014,"thumb":"/library/metadata/101/thumb/1790294462","art":"/library/metadata/101/art/1790294462","leafCount":1,"viewedLeafCount":0,"childCount":1,"addedAt":1790294461,"updatedAt":1790294462},
+ {"ratingKey":"200","key":"/library/metadata/200/children","guid":"plex://show/000000000000000000000200","type":"show","title":"Example Sunday","summary":"Interviews.","index":1,"year":1947,"thumb":"/library/metadata/200/thumb/1790524801","leafCount":2,"viewedLeafCount":0,"childCount":1,"addedAt":1790524801,"updatedAt":1790524801}
+]}}

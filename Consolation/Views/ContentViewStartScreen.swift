@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import SwiftUI
 
 struct ContentViewStartScreen: View {
@@ -107,3 +108,4 @@ struct StartupDivider: View {
             .overlay(Color.white.opacity(0.42))
     }
 }
+#endif

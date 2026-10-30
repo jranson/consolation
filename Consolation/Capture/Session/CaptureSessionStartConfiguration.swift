@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import Foundation
 
 /// Bundles parameters for `CaptureSessionBackend.startWatching` so the call stays within SwiftLint limits.
@@ -13,3 +14,4 @@ struct CaptureSessionStartConfiguration: Sendable {
     let initialVolumeLevel: Double
     let initialBufferLength: Int
 }
+#endif

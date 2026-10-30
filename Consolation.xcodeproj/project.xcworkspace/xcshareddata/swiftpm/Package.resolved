@@ -1,0 +1,15 @@
+{
+  "originHash" : "f9390a2130739b43a14b9ac775f1812aef0e0084139ef3ad7d87f4cbcd75ae9b",
+  "pins" : [
+    {
+      "identity" : "etagerekit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/centennial-oss/EtagereKit",
+      "state" : {
+        "revision" : "19a767d505e649c2d24bdaef69c557e1513b4372",
+        "version" : "0.1.1"
+      }
+    }
+  ],
+  "version" : 3
+}

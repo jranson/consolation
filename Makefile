@@ -1,9 +1,7 @@
-.PHONY: build build-ios build-macos build-release-unsigned build-run-macos check-no-team clean clean-build clean-caches \
-	clean-release generate-appicons generate-build-info lint lint-fix-safe lint-selftest reset-all reset-defaults \
-	reset-perms run-device run-macos run-sim-ipad test
-
-# Planned for Consolation 2.0: the tvOS targets (build-tvos, run-sim-tv, test-ui-tvos) arrive with the tvOS
-# destination, and `ffmpeg` / `test-packages` with the playback packages.
+.PHONY: build build-ios build-macos build-release-unsigned build-run-macos build-tvos check-no-team \
+	check-private-names clean clean-build clean-caches clean-ffmpeg clean-release ffmpeg generate-appicons \
+	generate-build-info generate-test-fixtures lint lint-fix-safe lint-selftest reset-all reset-defaults reset-perms \
+	run-device run-macos run-release run-sim-ipad run-sim-iphone run-sim-tv test test-packages test-ui-tvos
 
 # SwiftLint: https://github.com/realm/SwiftLint - `brew install swiftlint`
 SWIFTLINT ?= $(shell command -v swiftlint 2>/dev/null)
@@ -18,12 +16,17 @@ DIST_DERIVED_DATA := dist/DerivedData
 # Naming the architecture avoids xcodebuild's "multiple matching destinations" warning on Apple silicon.
 MACOS_DESTINATION := platform=macOS,arch=$(shell uname -m)
 
-# Builds that never sign: the iPad simulator app, and the unsigned release builds (CI signs releases itself).
+# Builds that never sign: the unsigned release builds (CI signs releases itself).
 NO_SIGNING := CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 
+# The iOS and tvOS simulator apps sign to run locally (ad hoc, no team or certificate needed), so Xcode gives them
+# their simulated entitlements. Without an application-identifier the simulator's Keychain refuses every item
+# (-34018), and sources that keep a token there (Plex) can't be added.
+SIM_SIGNING := CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO
+
 # With an untracked Local.xcconfig that sets DEVELOPMENT_TEAM, build-macos signs the Debug app with that team, so
-# macOS keeps Consolation's camera and microphone permissions and sandbox container between builds. Without one
-# (contributors, CI), it builds unsigned.
+# macOS keeps Consolation's camera, microphone and local network permissions and its sandbox container between
+# builds. Without one (contributors, CI), it builds unsigned.
 LOCAL_XCCONFIG := Local.xcconfig
 ifneq ($(wildcard $(LOCAL_XCCONFIG)),)
 DEBUG_SIGNING := -allowProvisioningUpdates
@@ -31,11 +34,14 @@ else
 DEBUG_SIGNING := $(NO_SIGNING)
 endif
 
-# Simulator for run-sim-ipad. Override with any name from `xcrun simctl list devices available`,
+# Simulators for the run-sim targets. Override with any name from `xcrun simctl list devices available`,
 # e.g. `make run-sim-ipad SIM_IPAD="iPad Air 13-inch (M4)"`. When several runtimes have a device with the same
-# name, the newest runtime's device is used. Simulators have no capture devices, so this checks layout only.
+# name, the newest runtime's device is used. Simulators have no capture devices, so Capture Card checks layout only.
+SIM_IPHONE ?= iPhone 17
 SIM_IPAD ?= iPad Pro 11-inch (M5)
+SIM_TV ?= Apple TV 4K (3rd generation) (at 1080p)
 IOS_SIM_APP := build/$(APP_NAME)-iOS.app
+TVOS_SIM_APP := build/$(APP_NAME)-tvOS.app
 
 APPICON_DIR := $(APP_DIR)/Assets.xcassets/AppIcon.appiconset
 APPICON_SRC := $(APPICON_DIR)/AppIcon_1024.png
@@ -68,7 +74,8 @@ COPYRIGHT := Copyright © 2026 Centennial OSS Inc.
 check-no-team:
 	@found=0; \
 	if grep -n -i -E 'development_?team' $(PROJECT)/project.pbxproj; then found=1; fi; \
-	for f in $$(find . -name '*.xcconfig' -not -name Local.xcconfig -not -path './build/*' -not -path './dist/*'); do \
+	for f in $$(find . -name '*.xcconfig' -not -name Local.xcconfig -not -path './build/*' -not -path './dist/*' \
+		-not -path './Packages/*/.build/*'); do \
 		if grep -n -H -E '^[[:space:]]*DEVELOPMENT_TEAM' "$$f"; then found=1; fi; \
 	done; \
 	if [ $$found -ne 0 ]; then \
@@ -77,12 +84,27 @@ check-no-team:
 		exit 1; \
 	fi
 
-lint: check-no-team lint-selftest
+# Names that must never appear in this public repository (private projects, internal hosts), one per line, in the
+# untracked Local.private-names. Fails if a tracked file, or a new file not yet added, contains one (case-insensitive).
+# Without the file (contributors, CI) there is nothing to check.
+PRIVATE_NAMES := Local.private-names
+check-private-names:
+	@if [ -s $(PRIVATE_NAMES) ]; then \
+		if git grep --untracked -I -n -i -F -f $(PRIVATE_NAMES) -- . ':!$(PRIVATE_NAMES)'; then \
+			echo "error: the files above name something listed in $(PRIVATE_NAMES); remove it before committing." >&2; \
+			exit 1; \
+		fi; \
+	fi
+
+lint: check-no-team check-private-names lint-selftest
 	@if [ -z "$(SWIFTLINT)" ]; then \
 		echo "SwiftLint not found. Install with: brew install swiftlint" >&2; \
 		exit 1; \
 	fi
 	@"$(SWIFTLINT)" lint --strict
+	@cmp -s LICENSES/LGPL-2.1.txt Packages/PlaybackKit/Sources/PlaybackKit/Resources/LGPL-2.1.txt || \
+		(echo "error: Packages/PlaybackKit/Sources/PlaybackKit/Resources/LGPL-2.1.txt must match LICENSES/LGPL-2.1.txt" >&2; \
+		exit 1)
 
 # The rules that keep every shelf to VideoCard still fire.
 # SwiftLint runs with the project config on fixtures outside the paths `lint` reads: on GameBoxShelf.swift each rule
@@ -112,7 +134,7 @@ lint-selftest:
 
 # Autocorrect only low-risk rules (whitespace / file hygiene). Still review `git diff` and run tests.
 # Optional: pass paths, e.g. `make lint-fix-safe FIX_PATHS="Consolation/ConsolationApp.swift"`
-FIX_PATHS ?= Consolation ConsolationTests ConsolationUITests
+FIX_PATHS ?= Consolation ConsolationTests ConsolationUITests Packages
 lint-fix-safe:
 	@if [ -z "$(SWIFTLINT)" ]; then \
 		echo "SwiftLint not found. Install with: brew install swiftlint" >&2; \
@@ -125,11 +147,14 @@ lint-fix-safe:
 		--only-rule trailing_semicolon \
 		$(FIX_PATHS)
 
+# Keeps build/ffmpeg-cache (the downloaded FFmpeg source tarball) and Packages/PlaybackKit/Frameworks (the built
+# xcframeworks, rebuilt only when scripts/build-ffmpeg.sh, the FFmpeg version or Xcode changes).
 clean: clean-build clean-caches clean-release
 
-# Debug builds (build/).
+# Debug builds (build/) and the packages' .build folders.
 clean-build:
-	rm -rf build
+	rm -rf Packages/*/.build
+	@if [ -d build ]; then find build -mindepth 1 -maxdepth 1 ! -name ffmpeg-cache -exec rm -rf {} +; fi
 
 # Xcode's own DerivedData folders for this checkout. Matched by the project path recorded in each folder, so other
 # checkouts' caches are left alone.
@@ -146,28 +171,49 @@ clean-caches:
 clean-release:
 	rm -rf dist
 
-# Lint, run unit tests, then build the Debug app for macOS and for the iPad simulator into build/.
-build: test build-macos build-ios
+# Also forgets the FFmpeg build and its cached source; the next build downloads and rebuilds it.
+clean-ffmpeg:
+	rm -rf build/ffmpeg-cache build/ffmpeg-work Packages/PlaybackKit/Frameworks
 
-build-macos:
+# Minimal LGPL-2.1 FFmpeg (libavcodec + libavutil) as xcframeworks for PlaybackKit. A no-op when up to date.
+# Needs nasm for the x86_64 slices (`brew install nasm`).
+ffmpeg:
+	@scripts/build-ffmpeg.sh
+
+# Regenerates the synthetic decoder fixtures (needs the ffmpeg command-line tool; never broadcast content).
+generate-test-fixtures:
+	@scripts/make-test-fixtures.sh
+
+# Lint, run unit tests, then build the Debug app for macOS, and for the iOS and tvOS simulators, into build/.
+build: test build-macos build-ios build-tvos
+
+build-macos: ffmpeg
 	mkdir -p build
 	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration Debug -derivedDataPath $(DERIVED_DATA) \
 		-destination '$(MACOS_DESTINATION)' build $(DEBUG_SIGNING)
 	rm -rf "build/$(APP_NAME).app"
 	cp -R "$(DERIVED_DATA)/Build/Products/Debug/$(APP_NAME).app" build/
 
-# iPad simulator app (unsigned).
-build-ios:
+# iPhone and iPad simulator app (signed to run locally: SIM_SIGNING).
+build-ios: ffmpeg
 	mkdir -p build
 	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration Debug -derivedDataPath $(DERIVED_DATA) \
-		-destination 'generic/platform=iOS Simulator' build $(NO_SIGNING)
+		-destination 'generic/platform=iOS Simulator' build $(SIM_SIGNING)
 	rm -rf "$(IOS_SIM_APP)"
 	cp -R "$(DERIVED_DATA)/Build/Products/Debug-iphonesimulator/$(APP_NAME).app" "$(IOS_SIM_APP)"
 
-# Launch options for the run targets: TRACE=health|focus|all sets CONSOLATION_HEALTH_TRACE and/or
-# CONSOLATION_FOCUS_TRACE in the app's environment, ARGS="..." adds any other launch arguments. Nothing reads the
-# trace variables yet; they're for the playback and focus traces planned for Consolation 2.0.
-LAUNCH_ARGS := $(ARGS)
+# Apple TV simulator app (signed to run locally, like the iPhone and iPad one).
+build-tvos: ffmpeg
+	mkdir -p build
+	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration Debug -derivedDataPath $(DERIVED_DATA) \
+		-destination 'generic/platform=tvOS Simulator' build $(SIM_SIGNING)
+	rm -rf "$(TVOS_SIM_APP)"
+	cp -R "$(DERIVED_DATA)/Build/Products/Debug-appletvsimulator/$(APP_NAME).app" "$(TVOS_SIM_APP)"
+
+# Launch options for the run targets: CHANNEL=9.1 starts playing a channel, PANE=liveTV opens a pane,
+# TRACE=health|focus|all logs per-second playback health and/or Apple TV focus moves, ARGS="..." adds any other
+# launch arguments (see Consolation/Debug/DebugLaunchActions.swift).
+LAUNCH_ARGS := $(if $(CHANNEL),-ConsolationPlayChannel $(CHANNEL)) $(if $(PANE),-ConsolationPane $(PANE)) $(ARGS)
 TRACE_VARS := $(if $(filter health all,$(TRACE)),CONSOLATION_HEALTH_TRACE=1) \
 	$(if $(filter focus all,$(TRACE)),CONSOLATION_FOCUS_TRACE=1)
 
@@ -178,15 +224,28 @@ run-macos:
 # Build the Debug app, then open it if the build succeeded.
 build-run-macos: build-macos run-macos
 
-# Build for a connected iPad, install it and launch it with the device's console in this terminal.
-# DEVICE=<name or identifier from `xcrun devicectl list devices`>, plus the launch options above. Needs your team in
-# Local.xcconfig.
-run-device:
-	@DEVICE="$(DEVICE)" TRACE="$(TRACE)" ARGS="$(ARGS)" scripts/run-device.sh
+# Build for a connected iPhone, iPad or Apple TV, install it and launch it with the device's console in this
+# terminal. DEVICE=<name or identifier from `xcrun devicectl list devices`>, plus the launch options above. Needs
+# your team in Local.xcconfig. run-release does the same with a Release build, where only TRACE applies (CHANNEL,
+# PANE and ARGS are debug launch actions).
+RUN_DEVICE := DEVICE="$(DEVICE)" CHANNEL="$(CHANNEL)" PANE="$(PANE)" TRACE="$(TRACE)" ARGS="$(ARGS)" \
+	scripts/run-device.sh
 
-# Build the iPad simulator app, then boot the simulator, install the app and launch it.
+run-device: ffmpeg
+	@CONFIGURATION=Debug $(RUN_DEVICE)
+
+run-release: ffmpeg
+	@CONFIGURATION=Release $(RUN_DEVICE)
+
+# Build the iOS simulator app, then boot the simulator, install the app and launch it.
+run-sim-iphone: build-ios
+	@$(call run_in_simulator,$(SIM_IPHONE))
+
 run-sim-ipad: build-ios
 	@$(call run_in_simulator,$(SIM_IPAD))
+
+run-sim-tv: build-tvos
+	@$(call run_in_simulator,$(SIM_TV),$(TVOS_SIM_APP))
 
 # $(call run_in_simulator,<device name>[,<app>]): boot the newest-runtime simulator with that name (if it isn't
 # already running), show it in Simulator.app when that's installed, then install and launch the app
@@ -208,9 +267,10 @@ define run_in_simulator
 	$(foreach var,$(TRACE_VARS),SIMCTL_CHILD_$(var)) xcrun simctl launch "$$udid" $(BUNDLE_ID) $(LAUNCH_ARGS)
 endef
 
-# Unsigned Release builds into dist/: the universal macOS app plus an iPad device build, to check that the Release
-# configuration compiles. The signed App Store and Developer ID builds come from .github/workflows/release-build.yml.
-build-release-unsigned:
+# Unsigned Release builds into dist/: the universal macOS app plus iOS and tvOS device builds, to check that the
+# Release configuration compiles. The signed App Store and Developer ID builds come from
+# .github/workflows/release-build.yml.
+build-release-unsigned: ffmpeg
 	mkdir -p dist
 	@if [ -n "$(TAGVER)" ]; then \
 		printf 'MARKETING_VERSION = %s\nCURRENT_PROJECT_VERSION = %s\nINFOPLIST_KEY_NSHumanReadableCopyright = %s\n' \
@@ -222,9 +282,12 @@ build-release-unsigned:
 		-destination 'generic/platform=macOS' build $(NO_SIGNING)
 	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration Release -derivedDataPath $(DIST_DERIVED_DATA) \
 		-destination 'generic/platform=iOS' build $(NO_SIGNING)
-	rm -rf "dist/$(APP_NAME).app" "dist/$(APP_NAME)-iOS.app"
+	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration Release -derivedDataPath $(DIST_DERIVED_DATA) \
+		-destination 'generic/platform=tvOS' build $(NO_SIGNING)
+	rm -rf "dist/$(APP_NAME).app" "dist/$(APP_NAME)-iOS.app" "dist/$(APP_NAME)-tvOS.app"
 	cp -R "$(DIST_DERIVED_DATA)/Build/Products/Release/$(APP_NAME).app" dist/
 	cp -R "$(DIST_DERIVED_DATA)/Build/Products/Release-iphoneos/$(APP_NAME).app" "dist/$(APP_NAME)-iOS.app"
+	cp -R "$(DIST_DERIVED_DATA)/Build/Products/Release-appletvos/$(APP_NAME).app" "dist/$(APP_NAME)-tvOS.app"
 
 generate-build-info:
 	@printf '%s\n' \
@@ -239,13 +302,39 @@ generate-build-info:
 		'}' > $(BUILD_INFO)
 	@echo "Wrote $(BUILD_INFO)"
 
+# Local Swift packages under Packages/. Each runs its own `swift test`; they never touch the network or real devices.
+PACKAGES := Packages/HTTPMPEG2Kit Packages/PlaybackKit Packages/MediaSourceKit Packages/PlayerKit
+
 # Run unit tests on macOS (lint first). The test bundle runs inside the ad-hoc signed, sandboxed Debug app. UI tests
-# are intentionally excluded because they launch and control the app on the active macOS desktop.
-test: lint
+# are not part of this: the Apple TV suite runs with `make test-ui-tvos`.
+test: lint ffmpeg test-packages
 	mkdir -p build
 	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration Debug -derivedDataPath $(DERIVED_DATA) \
 		-destination '$(MACOS_DESTINATION)' test -only-testing:ConsolationTests \
 		CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=YES
+
+test-packages: ffmpeg
+	@for pkg in $(PACKAGES); do \
+		echo "swift test --package-path $$pkg"; \
+		swift test --package-path $$pkg || exit 1; \
+	done
+
+# Apple TV focus and navigation, driven with the Siri Remote in the tvOS simulator (about 2 minutes; not part of
+# `build`). Override the simulator with SIM_TV="<name>".
+# Several simulators can share SIM_TV's name (one added in Xcode's Device Hub, another created earlier), and
+# xcodebuild refuses an ambiguous name, so the device is picked by identifier: SIM_TV_ID if given, else the first
+# booted simulator with that name, else the first available one.
+test-ui-tvos: ffmpeg
+	@id="$(SIM_TV_ID)"; \
+	if [ -z "$$id" ]; then \
+		matches=$$(xcrun simctl list devices available | grep -F "    $(SIM_TV) ("); \
+		id=$$( (echo "$$matches" | grep "(Booted)"; echo "$$matches") | head -n 1 | \
+			grep -o -E '[0-9A-F]{8}-([0-9A-F]{4}-){3}[0-9A-F]{12}'); \
+	fi; \
+	if [ -z "$$id" ]; then echo "error: no available simulator named '$(SIM_TV)'" >&2; exit 1; fi; \
+	echo "Testing on $(SIM_TV) ($$id)"; \
+	xcodebuild -project $(PROJECT) -scheme ConsolationUITests -configuration Debug -derivedDataPath $(DERIVED_DATA) \
+		-destination "id=$$id" test $(NO_SIGNING)
 
 # Generate app icon assets:
 #   1. Composite assets/app-icon-large-transparent.png over assets/app-icon-background-large.png
@@ -278,10 +367,11 @@ reset-perms:
 	@tccutil reset Camera $(BUNDLE_ID)
 	@tccutil reset Microphone $(BUNDLE_ID)
 
-# Consolation is sandboxed on macOS, so its preferences live in its container.
+# Consolation is sandboxed on macOS, so its preferences and saved documents live in its container.
 reset-defaults:
 	@defaults delete $(BUNDLE_ID) 2>/dev/null || true
 	@rm -f "$(HOME)/Library/Containers/$(BUNDLE_ID)/Data/Library/Preferences/$(BUNDLE_ID).plist"
-	@echo "Reset UserDefaults for $(BUNDLE_ID)"
+	@rm -rf "$(HOME)/Library/Containers/$(BUNDLE_ID)/Data/Library/Application Support/$(BUNDLE_ID)"
+	@echo "Reset UserDefaults and saved documents (sources, favorites, history) for $(BUNDLE_ID)"
 
 reset-all: reset-perms reset-defaults

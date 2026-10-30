@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import AVFoundation
 import Foundation
 
@@ -51,3 +52,4 @@ extension CaptureSessionManager {
         if lowFrameRateSampleStreak != 0 { lowFrameRateSampleStreak = 0 }
     }
 }
+#endif

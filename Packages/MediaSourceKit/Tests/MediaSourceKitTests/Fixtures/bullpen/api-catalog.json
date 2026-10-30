@@ -1,0 +1,66 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://bullpen.home.example/",
+      "https://centennialoss.org/bullpen/rel/channels": [
+        {
+          "href": "/api/v1/channels",
+          "type": "application/json"
+        }
+      ],
+      "https://centennialoss.org/bullpen/rel/guide": [
+        {
+          "href": "/api/v1/guide",
+          "type": "application/json"
+        }
+      ],
+      "https://centennialoss.org/bullpen/rel/recordings": [
+        {
+          "href": "/api/v1/recordings",
+          "type": "application/json"
+        }
+      ],
+      "https://centennialoss.org/bullpen/rel/recording-rules": [
+        {
+          "href": "/api/v1/recording-rules",
+          "type": "application/json"
+        }
+      ],
+      "https://centennialoss.org/bullpen/rel/events": [
+        {
+          "href": "/api/v1/events",
+          "type": "text/event-stream"
+        }
+      ],
+      "https://centennialoss.org/bullpen/rel/oidc-issuer": [
+        {
+          "href": "https://id.home.example/"
+        }
+      ],
+      "service-desc": [
+        {
+          "href": "/api/v1/openapi.json",
+          "type": "application/vnd.oai.openapi+json;version=3.1",
+          "title": "Bullpen client contract (REST)"
+        },
+        {
+          "href": "/api/v1/asyncapi.json",
+          "type": "application/vnd.aai.asyncapi+json;version=3.0.0",
+          "title": "Bullpen client contract (events)"
+        }
+      ],
+      "service-meta": [
+        {
+          "href": "/api/v1/server",
+          "type": "application/json"
+        }
+      ],
+      "status": [
+        {
+          "href": "/readyz",
+          "type": "text/plain"
+        }
+      ]
+    }
+  ]
+}

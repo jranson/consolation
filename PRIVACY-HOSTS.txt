@@ -1,0 +1,15 @@
+# Hosts that package code may name in a hard-coded http:// or https:// URL.
+#
+# Consolation connects only to the sources the user adds. A third-party endpoint (for example a cloud guide or a
+# sign-in service) may appear in Packages/MediaSourceKit/Sources or Packages/HTTPMPEG2Kit/Sources only when its
+# host is listed here, the feature is opt-in and off by default, and PRIVACY.md itemizes it in the same change. Hosts in
+# comment lines, interpolated hosts and the reserved documentation names (192.0.2.x, example.com, ...) are not
+# connections and need no entry.
+#
+# One host per line, lowercase. '#' starts a comment. Checked by PrivacyHostTests in MediaSourceKitTests.
+
+# Vocabulary namespaces. These URIs name link relations, profiles and terms in the documents a source reads (an
+# OPDS catalog's acquisition relation, Bullpen's relations and video profile). They are compared as strings and
+# never fetched, so they are not connections.
+centennialoss.org
+opds-spec.org

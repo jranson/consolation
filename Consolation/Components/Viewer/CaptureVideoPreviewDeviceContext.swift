@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import AVFoundation
 import Foundation
 
@@ -23,3 +24,4 @@ struct CaptureVideoPreviewDeviceContext {
         deviceID != nil && !isUSBVideoCapture
     }
 }
+#endif

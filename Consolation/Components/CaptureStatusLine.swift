@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import SwiftUI
 
 /// Primary status copy in the idle / overlay card (not the permission education block).
@@ -63,3 +64,4 @@ struct CaptureStatusLine: View {
             .multilineTextAlignment(.center)
     }
 }
+#endif

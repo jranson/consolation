@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import SwiftUI
 
 #if os(macOS)
@@ -45,3 +46,4 @@ struct AppIconImage: View {
     }
     #endif
 }
+#endif

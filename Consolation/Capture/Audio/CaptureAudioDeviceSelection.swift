@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import AVFoundation
 import Foundation
 #if os(iOS)
@@ -128,3 +129,4 @@ enum CaptureAudioDeviceSelection {
         return score > best.score || (score == best.score && audioName.count > best.device.localizedName.count)
     }
 }
+#endif

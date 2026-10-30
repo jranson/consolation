@@ -1,0 +1,59 @@
+{
+  "id": "bullpen:01a16244-0000-7000-8000-00000000c0de",
+  "name": "Bullpen on den",
+  "version": "v1.0.0",
+  "contract": "1.0.0",
+  "api": "/api/v1/",
+  "auth": {
+    "required": true,
+    "issuer": "https://id.home.example/",
+    "media": "signed-path",
+    "scopes": [
+      "watch",
+      "record",
+      "manage",
+      "admin"
+    ]
+  },
+  "capabilities": {
+    "live": {
+      "formats": [
+        "hls",
+        "dash",
+        "mpegts"
+      ],
+      "timeshift": "PT1H"
+    },
+    "recordings": true,
+    "recordingRules": true,
+    "events": true,
+    "library": false,
+    "guide": {
+      "daysAhead": 14,
+      "seriesIds": true,
+      "newEpisodeFlag": true,
+      "originalAirDate": true,
+      "images": true
+    },
+    "features": [
+      "channels",
+      "live",
+      "recording-media",
+      "guide",
+      "recordings",
+      "recording-rules",
+      "events"
+    ],
+    "channels": {
+      "atsc3": "simulcast"
+    },
+    "transcoders": [
+      { "name": "default", "encoding": { "codec": "h264", "hardware": false, "quality": "good", "resolution": "source", "motion": "standard" } },
+      {
+        "name": "hevc",
+        "encoding": { "codec": "h265", "hardware": true, "quality": "good", "resolution": "source", "motion": "standard" },
+        "accelerator": "VideoToolbox"
+      }
+    ]
+  }
+}

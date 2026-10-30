@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import AVFoundation
 import Foundation
 
@@ -184,3 +185,4 @@ extension CaptureSessionManager {
         return lines.joined(separator: "\n")
     }
 }
+#endif

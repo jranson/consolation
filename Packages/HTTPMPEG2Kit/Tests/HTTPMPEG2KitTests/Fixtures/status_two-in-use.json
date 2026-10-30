@@ -1,0 +1,30 @@
+[
+  {
+    "Resource": "tuner0"
+  },
+  {
+    "Resource": "tuner1"
+  },
+  {
+    "Resource": "tuner2",
+    "VctNumber": "7.1",
+    "VctName": "KMGH",
+    "Frequency": 177000000,
+    "SignalStrengthPercent": 48,
+    "SignalQualityPercent": 55,
+    "SymbolQualityPercent": 100,
+    "TargetIP": "192.0.2.44",
+    "NetworkRate": 4730400
+  },
+  {
+    "Resource": "tuner3",
+    "VctNumber": "31.1",
+    "VctName": "KDVR-DT",
+    "Frequency": 605000000,
+    "SignalStrengthPercent": 61,
+    "SignalQualityPercent": 100,
+    "SymbolQualityPercent": 100,
+    "TargetIP": "192.0.2.30",
+    "NetworkRate": 3655840
+  }
+]

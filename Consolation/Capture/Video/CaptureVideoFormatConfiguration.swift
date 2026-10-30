@@ -1,3 +1,4 @@
+#if !os(tvOS)
 import AVFoundation
 import Foundation
 
@@ -391,9 +392,9 @@ private extension AVCaptureDevice.Format {
         }) {
             return nearestCompatible
         }
-
         return videoSupportedFrameRateRanges.min(by: {
             abs($0.maxFrameRate - fps) < abs($1.maxFrameRate - fps)
         })
     }
 }
+#endif

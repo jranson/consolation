@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import AVFoundation
 import Foundation
 
@@ -35,3 +36,4 @@ enum CaptureSessionMediaAccess {
         }
     }
 }
+#endif

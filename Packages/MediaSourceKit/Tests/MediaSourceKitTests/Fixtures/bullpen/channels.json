@@ -1,0 +1,77 @@
+{
+  "@context": "https://schema.org",
+  "channels": [
+    {
+      "@type": "BroadcastChannel",
+      "identifier": "bullpen:ch/antenna-9-1",
+      "name": "KDDD-HD",
+      "broadcastChannelId": "9.1",
+      "lineupSource": "Antenna",
+      "callSign": "KDDD",
+      "atsc": {
+        "tsid": 104,
+        "program": 3
+      },
+      "visibility": "auto",
+      "links": [
+        {
+          "rel": "alternate",
+          "href": "/s/v1.MTc5MjcyMDAwMA.YWxpY2U.L2xpdmUvYW50ZW5uYS05LTEv.EXAMPLE-SIGNATURE/live/antenna-9-1/master.m3u8",
+          "type": "application/vnd.apple.mpegurl"
+        },
+        {
+          "rel": "alternate",
+          "href": "/s/v1.MTc5MjcyMDAwMA.YWxpY2U.L2xpdmUvYW50ZW5uYS05LTEv.EXAMPLE-SIGNATURE/live/antenna-9-1/manifest.mpd",
+          "type": "application/dash+xml"
+        },
+        {
+          "rel": "alternate",
+          "href": "/s/v1.MTc5MjcyMDAwMA.YWxpY2U.L2xpdmUvYW50ZW5uYS05LTEv.EXAMPLE-SIGNATURE/live/antenna-9-1/stream.ts",
+          "type": "video/mp2t"
+        },
+        {
+          "rel": "https://centennialoss.org/bullpen/rel/record",
+          "href": "/api/v1/recordings",
+          "type": "application/json"
+        }
+      ]
+    },
+    {
+      "@type": "BroadcastChannel",
+      "identifier": "bullpen:ch/antenna-102-1",
+      "name": "KAAA",
+      "broadcastChannelId": "102.1",
+      "lineupSource": "Antenna",
+      "callSign": "KAAA",
+      "atsc": {
+        "program": 1
+      },
+      "hidden": true,
+      "visibility": "auto",
+      "atsc3": true,
+      "simulcast": "bullpen:ch/antenna-2-1",
+      "links": [
+        {
+          "rel": "alternate",
+          "href": "/live/antenna-102-1/master.m3u8",
+          "type": "application/vnd.apple.mpegurl"
+        },
+        {
+          "rel": "alternate",
+          "href": "/live/antenna-102-1/manifest.mpd",
+          "type": "application/dash+xml"
+        },
+        {
+          "rel": "alternate",
+          "href": "/live/antenna-102-1/stream.ts",
+          "type": "video/mp2t"
+        },
+        {
+          "rel": "https://centennialoss.org/bullpen/rel/record",
+          "href": "/api/v1/recordings",
+          "type": "application/json"
+        }
+      ]
+    }
+  ]
+}

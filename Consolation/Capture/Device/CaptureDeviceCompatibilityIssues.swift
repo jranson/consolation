@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import AVFoundation
 import Foundation
 
@@ -73,3 +74,4 @@ enum CaptureDeviceCompatibilityIssues: Sendable {
         known.first { $0.matches(device: device, platform: .current) }
     }
 }
+#endif

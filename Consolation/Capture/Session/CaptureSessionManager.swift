@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 // `AVCaptureSession` has no Sendable annotation, yet it is deliberately shared between the main-actor preview
 // layers and `CaptureSessionBackend`, which serializes every mutation. Every hand-off of `session` to the backend
 // stays in this file, under this import: Xcode 26's compiler (CI's) rejects the hand-off anywhere else.
@@ -296,9 +297,11 @@ final class CaptureSessionManager {
 // MARK: - Backend hand-off
 
 extension CaptureSessionManager {
-    /// Stops capture on the backend and tears down its inputs and outputs.
+    /// Stops capture on the backend and tears down its inputs and outputs. On iPad the audio session goes back to
+    /// playback only.
     func stopBackendCapture() async {
         await backend.stopWatching(with: session)
+        PlaybackAudioSession.captureEnded()
     }
 }
 
@@ -371,3 +374,4 @@ private extension CaptureSessionManager {
         CaptureVideoFormatPreferences.loadFromStorage()
     }
 }
+#endif

@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import SwiftUI
 
 struct PlaybackToolbarMenu<Content: View>: View, Equatable {
@@ -71,6 +72,7 @@ struct IPadSettingsMenuContent: View, Equatable {
     let selectedVideoDeviceUniqueID: String?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(ShellModel.self) private var shell
 
     @AppStorage(CaptureVideoStatsUserDefaults.showStatsKey) var showVideoStats = false
     @AppStorage(CaptureVideoStatsUserDefaults.statsLocationKey)
@@ -92,14 +94,14 @@ struct IPadSettingsMenuContent: View, Equatable {
             audioBufferLengthMenu
             Divider()
             Button("\(AppIdentifier.name) Help") {
-                NotificationCenter.default.post(name: .showHelpCommand, object: nil)
+                shell.presentedSheet = .help
                 dismissPopoverAfterSelection()
             }
             .buttonStyle(.plain)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             Button("About \(AppIdentifier.name)") {
-                NotificationCenter.default.post(name: .showAboutCommand, object: nil)
+                shell.presentedSheet = .about
                 dismissPopoverAfterSelection()
             }
             .buttonStyle(.plain)
@@ -303,3 +305,4 @@ struct IPadSettingsMenuContent: View, Equatable {
         }
     }
 }
+#endif

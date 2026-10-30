@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import Foundation
 
 enum PlaybackControlsUserDefaults {
@@ -32,3 +33,4 @@ enum PlaybackControlsUserDefaults {
         UserDefaults.standard.set(position.height, forKey: positionYKey)
     }
 }
+#endif

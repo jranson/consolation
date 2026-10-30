@@ -7,6 +7,7 @@
 //  Remove or gate behind a build flag before shipping.
 //
 
+#if !os(tvOS)
 #if DEBUG
 
 import AVFoundation
@@ -173,4 +174,5 @@ struct CaptureDeviceDebugView: View {
     CaptureDeviceDebugView()
 }
 
+#endif
 #endif

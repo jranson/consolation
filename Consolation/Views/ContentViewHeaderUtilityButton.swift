@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import SwiftUI
 
 struct ContentViewHeaderUtilityButton: View {
@@ -45,3 +46,4 @@ struct ContentViewHeaderUtilityButton: View {
         }
     }
 }
+#endif

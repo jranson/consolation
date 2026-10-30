@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import AVFoundation
 import SwiftUI
 private let maxPreviewZoomScale: CGFloat = 1.175 * 1.5
@@ -256,4 +257,5 @@ struct CaptureVideoPreview: UIViewRepresentable {
     }
 }
 
+#endif
 #endif

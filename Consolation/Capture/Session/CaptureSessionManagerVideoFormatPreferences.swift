@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import AVFoundation
 import Foundation
 
@@ -31,3 +32,4 @@ extension CaptureSessionManager {
         formatPreferences.saveToStorage()
     }
 }
+#endif

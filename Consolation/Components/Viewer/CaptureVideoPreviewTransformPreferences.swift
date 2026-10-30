@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import Foundation
 
 enum CaptureVideoPreviewRotation: Int, CaseIterable, Sendable {
@@ -104,3 +105,4 @@ enum CaptureVideoPreviewTransformUserDefaults {
         NotificationCenter.default.post(name: changedNotification, object: nil)
     }
 }
+#endif

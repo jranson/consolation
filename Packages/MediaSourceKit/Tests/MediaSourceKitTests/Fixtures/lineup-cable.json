@@ -1,0 +1,4 @@
+[
+  {"GuideNumber": "702", "GuideName": "CABLE1", "VideoCodec": "MPEG2", "AudioCodec": "AC3", "HD": 1, "Favorite": 1, "URL": "http://192.0.2.12:5004/auto/v702"},
+  {"GuideNumber": "4.1", "GuideName": "KBBB-CBL", "VideoCodec": "MPEG2", "AudioCodec": "AC3", "URL": "http://192.0.2.12:5004/auto/v4.1"}
+]

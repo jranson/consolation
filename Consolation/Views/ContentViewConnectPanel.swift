@@ -3,6 +3,7 @@
 //  Consolation
 //
 
+#if !os(tvOS)
 import AVFoundation
 import SwiftUI
 
@@ -273,3 +274,4 @@ private struct CaptureDeviceCompatibilityIssueView: View {
         .frame(width: 630)
     }
 }
+#endif

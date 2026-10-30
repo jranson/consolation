@@ -22,7 +22,7 @@ The app is intentionally simple: watch the live video in a window or full screen
 
 ## Privacy
 
-Consolation does not collect, send, or share your data. Audio and video stay local and transient while you are watching a connected capture device. The app is open source, contains no trackers or analytics, makes no network calls, and does not record, stream, save, or analyze audio or video. Nothing leaves your device - ever.
+Consolation does not collect, send, or share your data. Audio and video from a capture card stay local and transient, and the app never records, streams, saves, or analyzes them. The app is open source and contains no trackers or analytics. It makes no network connections until you add a source (such as a TV tuner) or play a stream URL, and then connects only to the tuners, servers and URLs you choose; with only a capture card, it makes no network connections at all.
 
 Read the full privacy policy at [PRIVACY.md](PRIVACY.md) or <https://centennialoss.org/privacy/>.
 
@@ -44,14 +44,16 @@ Consolation has been tested by the developers on Intel and Apple Silicon Macs an
 
 ### Running
 
-- iPad with USB Port, or Apple Silicon or Intel Mac computer
-- iPadOS 18 or higher, or macOS 15 or higher
-- A UVC-compliant video capture card
+- A Mac running macOS 26 or later (Apple silicon, or an Intel Mac that runs macOS 26)
+- An iPhone or iPad running iOS or iPadOS 26 or later
+- An Apple TV 4K (2nd generation or later) running tvOS 27 or later
+- For the Capture Card viewer: a UVC-compliant video capture card, on a Mac or an iPad with a USB-C port
 
 ### Developer
 
-- Xcode 26.4 or higher, including Command Line Tools and the iOS platform
+- Xcode 27.0 or later, including Command Line Tools and the iOS and tvOS platforms
 - SwiftLint (`brew install swiftlint`)
+- nasm (`brew install nasm`), for the FFmpeg build's x86_64 slices
 
 ## Building
 
@@ -59,17 +61,30 @@ Consolation has been tested by the developers on Intel and Apple Silicon Macs an
 make build
 ```
 
-`make build` lints, runs the unit tests, and builds the macOS app (`build/Consolation.app`) plus an iPad simulator app (`build/Consolation-iOS.app`). You can also open `Consolation.xcodeproj` in Xcode, choose the Consolation scheme and a destination, and run it (⌘R).
+The first build runs `make ffmpeg`, which downloads the pinned FFmpeg source release, checks its SHA-256 and builds a minimal LGPL-2.1 `libavcodec` and `libavutil` as xcframeworks into `Packages/PlaybackKit/Frameworks/` (a few minutes; later builds skip it until the script, the FFmpeg version or Xcode changes). Run `make ffmpeg` once before opening the project in Xcode on a fresh checkout.
 
-### Running on each platform
+`make build` lints, runs the package and app unit tests, and builds the macOS app (`build/Consolation.app`) plus iOS and tvOS simulator apps (`build/Consolation-iOS.app` and `build/Consolation-tvOS.app`). You can also open `Consolation.xcodeproj` in Xcode, choose the Consolation scheme and a destination, and run it (⌘R).
+
+### Running and testing on each platform
 
 | Platform | Command |
 |---|---|
 | Mac | `make run-macos` opens the app built by `make build` (`make build-run-macos` builds first) |
-| iPad simulator | `make run-sim-ipad` builds, boots the simulator and launches. Simulators have no capture devices, so this only checks layout |
-| A real iPad | `make run-device DEVICE="<name>"` builds for the device, installs, launches and shows its console in your terminal. It needs your team in `Local.xcconfig` (below), and the iPad paired with Xcode and in Developer Mode; `xcrun devicectl list devices` lists names |
+| iPhone or iPad simulator | `make run-sim-iphone` or `make run-sim-ipad` builds, boots the simulator and launches. Simulators have no capture devices, so the Capture Card pane only checks layout |
+| Apple TV simulator | `make run-sim-tv` |
+| A real iPhone, iPad or Apple TV | `make run-device DEVICE="<name>"` builds for the device, installs, launches and shows its console in your terminal. It needs your team in `Local.xcconfig` (below), and the device paired with Xcode and in Developer Mode; `xcrun devicectl list devices` lists names. `make run-release DEVICE="<name>"` does the same with an optimized Release build |
 
-`ARGS="..."` adds launch arguments to any run target.
+Every run target takes the same launch options:
+- `CHANNEL=9.1` starts playing a channel.
+- `PANE=liveTV` opens a pane: `home`, `liveTV`, `quickPlay`, `library`, `nowPlaying`, `captureCard` or `settings`.
+- `TRACE=health`, `focus` or `all` turns on diagnostics: `health` logs playback health each second, `focus` logs every Apple TV focus move.
+- `ARGS="..."` adds any other launch arguments from `Consolation/Debug/DebugLaunchActions.swift`.
+
+`CHANNEL`, `PANE` and `ARGS` are debug launch actions, so `make run-release` takes only `TRACE`.
+
+In Xcode, set `CONSOLATION_HEALTH_TRACE=1` or `CONSOLATION_FOCUS_TRACE=1` under the scheme's environment variables instead.
+
+`make test-ui-tvos` runs the Apple TV UI tests in the tvOS simulator. They press Siri Remote buttons to move through the sidebar and into each pane and back (a few minutes; not part of `make build`). The UI tests live in `ConsolationUITests/` and use XCTest, because Swift Testing can't drive `XCUIApplication`.
 
 The project doesn't set a development team, so Xcode signs local builds with "Sign to Run Locally" and you don't need an Apple developer account to contribute. If you'd rather sign with your own team (for example, so macOS remembers Consolation's camera and microphone permissions between builds), create an untracked `Local.xcconfig` in the repository root:
 
@@ -84,9 +99,11 @@ Please don't set a team in Xcode's Signing & Capabilities tab, because that writ
 ## Tech Stack
 
 - SwiftUI
-- AVFoundation
-- AppKit
-- UIKit
+- Swift 6 concurrency
+- AVFoundation and AVKit
+- AppKit and UIKit
+- Local Swift packages under `Packages/` (tuners, playback, sources, the player) and [EtagereKit](https://github.com/centennial-oss/EtagereKit)
+- FFmpeg's `libavcodec` and `libavutil` (LGPL-2.1, dynamically linked) for MPEG-2 video
 
 ## Contributor Disclosure
 

@@ -1,0 +1,14 @@
+{
+  "FriendlyName": "HDHomeRun SCRIBE 4K",
+  "ModelNumber": "HDVR-4K",
+  "FirmwareName": "hdhomerun_dvr_atsc3",
+  "FirmwareVersion": "20260326",
+  "DeviceID": "1234abc2",
+  "BaseURL": "http://192.0.2.10",
+  "LineupURL": "http://192.0.2.10/lineup.json",
+  "TunerCount": "4",
+  "StorageID": "1234ABC2-0000-0000-0000-000000000000",
+  "StorageURL": "http://192.0.2.10/recorded_files.json",
+  "UpgradeAvailable": "20260401",
+  "Legacy": 0
+}
