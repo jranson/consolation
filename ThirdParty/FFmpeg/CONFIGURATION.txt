@@ -8,10 +8,10 @@ Patches:        none (exact upstream source)
 Licence:        LGPL version 2.1 or later (no --enable-gpl, --enable-nonfree or --enable-version3)
 Libraries:      libavcodec 63.1.102, libavutil 61.1.102
 Components:     --enable-decoder=mpeg2video --enable-decoder=mpeg1video --enable-decoder=mp2 --enable-parser=mpegvideo --enable-parser=mpegaudio
-Xcode:          Xcode 27.0 Build version 27A266a
+Xcode:          Xcode 27.1 Build version 27A9275
 SDK:            macosx 27.0
-SDK:            iphoneos 27.0
-SDK:            iphonesimulator 27.0
+SDK:            iphoneos 27.1
+SDK:            iphonesimulator 27.1
 SDK:            appletvos 27.0
 SDK:            appletvsimulator 27.0
 Rebuild:        make ffmpeg (or FFMPEG_FORCE=1 scripts/build-ffmpeg.sh)

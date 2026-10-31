@@ -26,6 +26,14 @@ nonisolated public struct NALVideoFramer: Sendable {
     /// The format of the last picture emitted.
     public internal(set) var format: NALVideoFormat?
 
+    /// The frame duration in 90 kHz ticks a container states (Matroska's DefaultDuration). Without a frame rate in
+    /// the SPS, pictures are timed with it rather than with an estimate from decode timestamps, which such
+    /// containers don't carry. Kept across `reset()`.
+    public var nominalFrameTicks: Int64? {
+        get { timing.nominalFrameTicks }
+        set { timing.nominalFrameTicks = newValue }
+    }
+
     var buffer: [UInt8] = []
     var scanPosition = 0
     /// Where the start code of the NAL unit being read is.
@@ -97,7 +105,9 @@ nonisolated public struct NALVideoFramer: Sendable {
 
     /// Forgets everything, including parameter sets; output restarts at the next random-access picture.
     public mutating func reset() {
+        let nominal = nominalFrameTicks
         self = NALVideoFramer(codec: codec)
+        nominalFrameTicks = nominal
     }
 
     // MARK: - Scanning

@@ -84,6 +84,9 @@ public actor QuickPlaySource: MediaSource {
         case .transportStream:
             return PlaybackDescriptor(transport: .http(url, headers: [:]), container: .mpegTS, isLive: true,
                                       start: .liveEdge)
+        case .matroska:
+            return PlaybackDescriptor(transport: .http(url, headers: [:]), container: .mkv,
+                                      start: request.start ?? .beginning)
         case .progressive:
             let container: ContainerHint = url.pathExtension.lowercased() == "mov" ? .mov : .mp4
             return PlaybackDescriptor(transport: .http(url, headers: [:]), container: container,

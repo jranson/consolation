@@ -169,7 +169,7 @@ public actor PlexSource: LibraryServerSource {
         case "mpegts", "ts": .mpegTS
         case "mp4", "m4v": .mp4
         case "mov": .mov
-        case "mkv": .mkv
+        case "mkv", "webm": .mkv
         default: .unknown
         }
     }

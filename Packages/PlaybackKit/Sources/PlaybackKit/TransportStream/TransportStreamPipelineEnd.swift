@@ -69,6 +69,15 @@ nonisolated final class IngestProgress: @unchecked Sendable {
             return generation
         }
     }
+
+    /// Starts a new ingest generation that carries on at the ring's write head, keeping what the ring holds (a
+    /// dropped connection reopened where its data stopped). Returns the new generation.
+    func resume() -> Int {
+        lock.withLock {
+            generation += 1
+            return generation
+        }
+    }
 }
 
 /// How far a finite stream's end has got, on the pipeline queue.

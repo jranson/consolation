@@ -2,7 +2,8 @@
 //  EngineFactory.swift
 //  Consolation
 //
-//  Chooses the engine for what the user wants to play. HDHomeRun and other raw MPEG-TS never go to AVPlayer.
+//  Chooses the engine for what the user wants to play. HDHomeRun and other raw MPEG-TS never go to AVPlayer, and
+//  neither does Matroska (MKV), which AVFoundation can't open.
 //
 
 import Foundation
@@ -57,13 +58,21 @@ struct EngineFactory {
 
     private func makeEngine(for url: URL) -> any PlaybackEngine {
         let kind = URLKindDetector.detect(url)
-        if kind == .transportStream {
-            let needsRawClient = RawHTTPByteSource.isNeeded(for: url)
+        let needsRawClient = RawHTTPByteSource.isNeeded(for: url)
+        switch kind {
+        case .transportStream:
             return TransportStreamEngine(makeSource: { () -> any ByteSource in
                 needsRawClient ? RawHTTPByteSource(url: url) : HTTPByteSource(url: url)
             }, timeShift: timeShift)
+        case .matroska:
+            // A file is read directly; HTTP(S) seeks with range requests.
+            return MatroskaEngine(makeSource: { () -> any ByteSource in
+                if url.isFileURL { return FileByteSource(url: url) }
+                return needsRawClient ? RawHTTPByteSource(url: url) : HTTPByteSource(url: url)
+            })
+        default:
+            return AVPlayerEngine(url: url, kind: kind.avPlayerInputKind ?? .file)
         }
-        return AVPlayerEngine(url: url, kind: kind.avPlayerInputKind ?? .file)
     }
 
     /// Added multi-view tiles keep a smaller buffer (each tile has its own), at most 1 GB.

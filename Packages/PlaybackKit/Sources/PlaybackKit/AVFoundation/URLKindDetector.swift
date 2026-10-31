@@ -12,6 +12,8 @@ public nonisolated enum URLKind: String, Equatable, Sendable {
     case dash
     case hls
     case transportStream
+    /// Matroska (MKV, and WebM): `MatroskaEngine`.
+    case matroska
     case progressive
     case unknown
 
@@ -21,7 +23,7 @@ public nonisolated enum URLKind: String, Equatable, Sendable {
         case .dash: .dash
         case .hls: .hls
         case .progressive: .file
-        case .transportStream, .unknown: nil
+        case .transportStream, .matroska, .unknown: nil
         }
     }
 }
@@ -31,6 +33,7 @@ public nonisolated enum URLKindDetector {
         "mpd": .dash,
         "m3u8": .hls, "m3u": .hls,
         "ts": .transportStream, "m2ts": .transportStream, "mts": .transportStream,
+        "mkv": .matroska, "mk3d": .matroska, "webm": .matroska,
         "mp4": .progressive, "mov": .progressive, "m4v": .progressive
     ]
     /// Query keys some servers use to name the container (`?format=m3u8`, `?output=ts`, `?type=mpd`).
@@ -40,6 +43,7 @@ public nonisolated enum URLKindDetector {
         "mpd": .dash, "dash": .dash, "mpd-time-csf": .dash, "mpd-time-cmaf": .dash,
         "m3u8": .hls, "hls": .hls, "m3u8-aapl": .hls, "m3u8-cmaf": .hls,
         "ts": .transportStream, "mpegts": .transportStream, "mp2t": .transportStream,
+        "mkv": .matroska, "matroska": .matroska, "webm": .matroska,
         "mp4": .progressive, "mov": .progressive
     ]
 

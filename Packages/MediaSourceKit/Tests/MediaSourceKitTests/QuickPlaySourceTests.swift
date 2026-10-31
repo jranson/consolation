@@ -104,6 +104,12 @@ struct QuickPlaySourceTests {
         #expect(movie.container == .mp4)
         #expect(movie.start == .resume(.seconds(30)))
         #expect(!movie.isLive)
+
+        let mkvURL = URL(string: "https://streams.example.com/vod/Episode%2012.mkv")!
+        let withMKV = QuickPlaySource(history: [QuickPlayHistoryEntry(url: mkvURL, lastPlayed: Date())])
+        let episode = try await withMKV.playback(for: withMKV.itemID(for: mkvURL), request: PlaybackRequest())
+        #expect(episode.container == .mkv)
+        #expect(episode.start == .beginning && !episode.isLive)
     }
 
     @Test func unknownItemsAreRejected() async {

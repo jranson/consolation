@@ -147,6 +147,32 @@ struct PlaybackInputMapperTests {
         #expect(file.makeSource() is FileByteSource)
     }
 
+    @MainActor
+    @Test func matroskaPlaysInItsOwnEngine() throws {
+        func feed(_ descriptor: PlaybackDescriptor) throws -> MatroskaFeed? {
+            guard case .matroska(let feed) = try PlaybackInputMapper.input(for: descriptor) else { return nil }
+            return feed
+        }
+        // By the source's hint, or by the URL's extension when the source gives none.
+        let token = ["X-Plex-Token": "secret"]
+        let lan = URL(string: "http://192.168.1.20:32400/library/parts/1/2/file")!
+        let plex = try #require(try feed(PlaybackDescriptor(transport: .http(lan, headers: token), container: .mkv)))
+        #expect(plex.makeSource() is HTTPByteSource)
+        let remote = URL(string: "http://streams.example.com/movie.mkv")!
+        #expect(try feed(PlaybackDescriptor(transport: .http(remote, headers: [:])))?.makeSource()
+            is RawHTTPByteSource)
+        let local = URL(fileURLWithPath: "/tmp/Movie.webm")
+        #expect(try feed(PlaybackDescriptor(transport: .file(local)))?.makeSource() is FileByteSource)
+        #expect(PlaybackInputMapper.resolvedContainer(.unknown, url: remote) == .mkv)
+        let engine = try PlaybackInputMapper.input(for: PlaybackDescriptor(transport: .file(local))).makeEngine()
+        #expect(engine is MatroskaEngine)
+        #expect(engine.state == .idle)
+        // Headers never cross the internet in plain http, whichever engine.
+        #expect(throws: PlaybackMappingError.insecureRequestHeaders) {
+            _ = try PlaybackInputMapper.input(for: PlaybackDescriptor(transport: .http(remote, headers: token)))
+        }
+    }
+
     @Test func growingHLSPlaysFromTheBeginningInAVPlayer() throws {
         let growing = PlaybackDescriptor(transport: .hls(Self.hls, headers: [:]), isGrowing: true, start: .beginning)
         guard case .avPlayer(let input) = try PlaybackInputMapper.input(for: growing) else {
@@ -169,7 +195,6 @@ struct PlaybackInputMapperTests {
              .insecureRequestHeaders),
             (PlaybackDescriptor(transport: .bytes(EmptyRange())), .byteRangeSource),
             (PlaybackDescriptor(transport: .http(Self.mp4, headers: [:]), isGrowing: true), .growingFile),
-            (PlaybackDescriptor(transport: .http(Self.mp4, headers: [:]), container: .mkv), .container(.mkv)),
             (PlaybackDescriptor(transport: .hls(Self.hls, headers: [:]), start: .resume(.seconds(60))),
              .startPosition(.resume(.seconds(60))))
         ]

@@ -12,7 +12,7 @@ public nonisolated enum OPDSPlayback {
     }
 
     /// The version to play: among acquisition links (and their alternates) whose type an engine plays, the
-    /// tallest that fits `maxHeight`, then HLS before MP4, MPEG-TS and DASH, then the lower bitrate. Links without
+    /// tallest that fits `maxHeight`, then HLS before MP4, MPEG-TS, DASH and MKV, then the lower bitrate. Links without
     /// sizes rank by type alone. Nil when nothing is playable.
     public static func choice(for publication: OPDSPublication, base: URL, maxHeight: Int? = nil) -> Choice? {
         let candidates = publication.links
@@ -49,6 +49,7 @@ public nonisolated enum OPDSPlayback {
         case "video/mp4", "video/x-m4v": .mp4
         case "video/quicktime": .mov
         case "video/mp2t", "video/mpeg": .mpegTS
+        case "video/x-matroska", "video/matroska", "video/webm": .mkv
         default: nil
         }
     }

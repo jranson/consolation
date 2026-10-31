@@ -10,6 +10,7 @@ import PlaybackKit
 /// | `.http`, MPEG-TS | `.transportStream` over GETs (`HTTPByteSource`, or `RawHTTPByteSource` for plain http to a host
 ///   outside the local network): one for a live stream, range requests to seek a recording |
 /// | `.file`, MPEG-TS | `.transportStream` read from the file (`FileByteSource`), seekable |
+/// | `.http` or `.file`, MKV | `.matroska`, read like MPEG-TS (range requests or the file), seekable with its Cues |
 /// | `.hls`, `.dash` | `.avPlayer(.hls)`, `.avPlayer(.dash)` |
 /// | `.http` or `.file`, MP4/MOV or unknown | `.avPlayer(.file)` |
 ///
@@ -18,8 +19,8 @@ import PlaybackKit
 ///
 /// A growing HLS or DASH recording (an EVENT playlist, a dynamic MPD) plays in AVPlayer, which follows it, from its
 /// beginning. What the engines can't take yet throws a `PlaybackMappingError` instead of playing wrongly:
-/// `ByteRangeSource`s, other growing files, resuming at a saved position, and MKV. A live channel on a shared multiplex plays: each
-/// connection's `ByteSource` names the program the engine selects from the PAT.
+/// `ByteRangeSource`s, other growing files, and resuming at a saved position. A live channel on a shared multiplex
+/// plays: each connection's `ByteSource` names the program the engine selects from the PAT.
 public nonisolated enum PlaybackInputMapper {
     public static func input(for descriptor: PlaybackDescriptor) throws(PlaybackMappingError) -> EngineInput {
         if case .resume = descriptor.start { throw .startPosition(descriptor.start) }
@@ -79,7 +80,7 @@ public nonisolated enum PlaybackInputMapper {
             // As in Quick Play today: an unrecognized URL gets a try in AVPlayer, which reports what it can't play.
             return .avPlayer(AVPlayerInput(url: url, kind: .file, headers: headers))
         case .mkv:
-            throw .container(.mkv)
+            return .matroska(matroskaFeed(url, headers: headers))
         }
     }
 
@@ -88,6 +89,7 @@ public nonisolated enum PlaybackInputMapper {
         guard hint == .unknown else { return hint }
         switch URLKindDetector.detect(url) {
         case .transportStream: return .mpegTS
+        case .matroska: return .mkv
         case .hls: return .hls
         case .dash: return .dash
         case .progressive: return .mp4
@@ -109,6 +111,15 @@ public nonisolated enum PlaybackInputMapper {
         return TransportStreamFeed(growth: isLive ? .live : .complete, programNumber: nil, channel: nil) { _ in
             if needsRawClient { return RawHTTPByteSource(url: url) }
             return HTTPByteSource(url: url, headers: headers)
+        }
+    }
+
+    /// A Matroska file read from disk, or through GETs like MPEG-TS; seeks reopen it at an offset.
+    private static func matroskaFeed(_ url: URL, headers: [String: String]) -> MatroskaFeed {
+        if url.isFileURL { return MatroskaFeed { FileByteSource(url: url) } }
+        let needsRawClient = headers.isEmpty && RawHTTPByteSource.isNeeded(for: url)
+        return MatroskaFeed { () -> any ByteSource in
+            needsRawClient ? RawHTTPByteSource(url: url) : HTTPByteSource(url: url, headers: headers)
         }
     }
 }

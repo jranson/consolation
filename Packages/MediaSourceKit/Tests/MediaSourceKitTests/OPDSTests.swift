@@ -64,6 +64,13 @@ struct OPDSTests {
         #expect(OPDSPlayback.choice(for: movie, base: Self.base, maxHeight: 720)?.container == .mp4)
     }
 
+    @Test func matroskaLinksPlay() {
+        for type in ["video/x-matroska", "video/matroska", "video/webm"] {
+            #expect(OPDSPlayback.container(for: type) == .mkv)
+        }
+        #expect(OPDSPlayback.container(for: "video/x-msvideo") == nil)
+    }
+
     @Test func itemsKeepToTheSourcesOriginForArtwork() throws {
         let feed = try Self.root()
         let source = SourceID.bullpen(serverID: "test")

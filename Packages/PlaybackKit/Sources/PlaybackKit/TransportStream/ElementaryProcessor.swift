@@ -65,6 +65,10 @@ nonisolated struct ElementaryProcessor {
     private var sampleBuilder: VideoSampleBuilder
     private var audioFormat: CMAudioFormatDescription?
     private var pendingAudio: [AC3Frame] = []
+    /// A container's frame duration for H.264 and HEVC (`NALVideoFramer.nominalFrameTicks`); nil for MPEG-TS.
+    var nominalFrameTicks: Int64? {
+        didSet { nalFramer?.nominalFrameTicks = nominalFrameTicks }
+    }
 
     init() {
         sampleBuilder = VideoSampleBuilder(pool: pool)
@@ -103,6 +107,7 @@ nonisolated struct ElementaryProcessor {
         case .hevc: nalFramer = NALVideoFramer(codec: .hevc)
         default: nalFramer = nil
         }
+        nalFramer?.nominalFrameTicks = nominalFrameTicks
     }
 
     /// Compressed video sample buffers (with their picture facts) for the pictures completed by this PES.

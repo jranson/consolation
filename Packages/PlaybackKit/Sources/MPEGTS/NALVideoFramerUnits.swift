@@ -309,6 +309,9 @@ nonisolated struct NALTiming: Sendable {
     private var recentFrameTicks: [Int64] = []
     /// The frame duration the last picture was timed with.
     private(set) var lastFrameTicks = NALTiming.defaultFrameTicks
+    /// The container's frame duration (Matroska's DefaultDuration), used when the SPS has no frame rate: decode
+    /// timestamps that would show it aren't there.
+    var nominalFrameTicks: Int64?
 
     static let defaultFrameTicks: Int64 = 3_003
     /// Plausible frame durations: 10 to 300 frames per second.
@@ -328,7 +331,8 @@ nonisolated struct NALTiming: Sendable {
             lastExplicitDTS = dts
             fieldsSinceExplicit = 0
         }
-        let frame = Self.frameTicks(frameRate) ?? recentFrameTicks.min() ?? Self.defaultFrameTicks
+        let nominal = nominalFrameTicks.flatMap { Self.plausibleFrameTicks.contains($0) ? $0 : nil }
+        let frame = Self.frameTicks(frameRate) ?? nominal ?? recentFrameTicks.min() ?? Self.defaultFrameTicks
         lastFrameTicks = frame
         let duration = frame * Int64(fields) / 2
         let pts: Int64

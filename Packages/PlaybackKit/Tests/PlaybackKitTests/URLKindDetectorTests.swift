@@ -19,6 +19,9 @@ struct URLKindDetectorTests {
         #expect(kind("https://example.com/a/movie.mov#t=10") == .progressive)
         #expect(kind("https://example.com/a/movie.m4v") == .progressive)
         #expect(kind("https://example.com/a/my%20movie.mp4") == .progressive)
+        #expect(kind("https://example.com/a/movie.mkv") == .matroska)
+        #expect(kind("file:///Users/someone/Movies/Movie.MKV") == .matroska)
+        #expect(kind("https://example.com/a/clip.webm?token=1") == .matroska)
     }
 
     @Test func classifiesByQuery() {
@@ -28,7 +31,9 @@ struct URLKindDetectorTests {
         #expect(kind("https://example.com/play?ext=.mp4") == .progressive)
         #expect(kind("https://example.com/video.ism/manifest(format=m3u8-aapl)") == .hls)
         #expect(kind("https://example.com/video.ism/manifest(format=mpd-time-csf)") == .dash)
-        #expect(kind("https://example.com/stream?format=webm") == .unknown)
+        #expect(kind("https://example.com/stream?format=webm") == .matroska)
+        #expect(kind("https://example.com/stream?container=mkv") == .matroska)
+        #expect(kind("https://example.com/stream?format=avi") == .unknown)
     }
 
     @Test func classifiesHDHomeRunStreams() {
@@ -45,7 +50,7 @@ struct URLKindDetectorTests {
     @Test func leavesTheRestUnknown() {
         #expect(kind("https://example.com/") == .unknown)
         #expect(kind("https://example.com/watch") == .unknown)
-        #expect(kind("https://example.com/video.mkv") == .unknown)
+        #expect(kind("https://example.com/video.avi") == .unknown)
         #expect(kind("https://example.com/archive.tar.gz") == .unknown)
     }
 
@@ -54,6 +59,7 @@ struct URLKindDetectorTests {
         #expect(URLKind.hls.avPlayerInputKind == .hls)
         #expect(URLKind.progressive.avPlayerInputKind == .file)
         #expect(URLKind.transportStream.avPlayerInputKind == nil)
+        #expect(URLKind.matroska.avPlayerInputKind == nil)
         #expect(URLKind.unknown.avPlayerInputKind == nil)
     }
 }

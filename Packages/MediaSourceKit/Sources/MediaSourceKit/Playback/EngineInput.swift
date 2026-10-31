@@ -5,10 +5,13 @@ import PlaybackKit
 /// What PlaybackKit's engines accept today, produced by `PlaybackInputMapper`.
 ///
 /// Until PlaybackKit takes one input type, this mirrors the engines' real initializers:
-/// `TransportStreamEngine(makeSource:timeShift:)` and `AVPlayerEngine(url:kind:requestHeaders:)`.
+/// `TransportStreamEngine(makeSource:timeShift:)`, `MatroskaEngine(makeSource:)` and
+/// `AVPlayerEngine(url:kind:requestHeaders:)`.
 public nonisolated enum EngineInput: Sendable {
     /// Raw MPEG-TS through our own demuxer.
     case transportStream(TransportStreamFeed)
+    /// Matroska (MKV, WebM) through our own demuxer.
+    case matroska(MatroskaFeed)
     /// HLS, DASH (translated to HLS) and progressive MP4/MOV through AVPlayer.
     case avPlayer(AVPlayerInput)
 }
@@ -65,6 +68,21 @@ public nonisolated struct TransportStreamFeed: Sendable {
     }
 }
 
+/// The Matroska engine's input: the file, or the HTTP resource with its request headers, as a byte source that
+/// seeks by reopening at an offset.
+public nonisolated struct MatroskaFeed: Sendable {
+    private let factory: @Sendable () -> any ByteSource
+
+    init(factory: @escaping @Sendable () -> any ByteSource) {
+        self.factory = factory
+    }
+
+    /// The source playback starts with (the engine reopens it at other offsets to seek).
+    public func makeSource() -> any ByteSource {
+        factory()
+    }
+}
+
 extension EngineInput {
     /// The engine for this input, not yet started.
     @MainActor
@@ -77,6 +95,8 @@ extension EngineInput {
         case .transportStream(let feed):
             TransportStreamEngine(makeSource: { feed.makeSource() }, timeShift: timeShift,
                                   preferredLanguage: preferredLanguage)
+        case .matroska(let feed):
+            MatroskaEngine(makeSource: { feed.makeSource() }, preferredLanguage: preferredLanguage)
         case .avPlayer(let input):
             AVPlayerEngine(url: input.url, kind: input.kind,
                            configuration: input.configured(avPlayerConfiguration), requestHeaders: input.headers)
