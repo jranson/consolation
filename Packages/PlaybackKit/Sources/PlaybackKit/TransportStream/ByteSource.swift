@@ -39,12 +39,15 @@ nonisolated public extension ByteSource {
 
 /// Streams a URL with one GET through URLSession, delivering data chunks as they arrive.
 /// Used for raw MPEG-TS URLs that App Transport Security allows (https, and local-network http), and files.
-/// Request headers (a server's token) go with every request, including the range requests of a seek.
+/// Request headers (a server's token) go with every request, including the range requests of a seek. A redirect
+/// that `refusesRedirect` names (plain http off the local network, for `URLByteSource`) isn't followed: `open()`
+/// throws it as a `ByteSourceRedirect`.
 nonisolated public final class HTTPByteSource: NSObject, ByteSource, URLSessionDataDelegate, @unchecked Sendable {
     // @unchecked: mutable state is only touched under `lock`, and URLSession calls the delegate on its serial queue.
     private let url: URL
     private let startOffset: Int64
     private let headers: [String: String]
+    private let refusesRedirect: @Sendable (URL) -> Bool
     private let lock = NSLock()
     private var continuation: AsyncThrowingStream<Data, any Error>.Continuation?
     private var session: URLSession?
@@ -54,12 +57,16 @@ nonisolated public final class HTTPByteSource: NSObject, ByteSource, URLSessionD
     private var length: Int64?
     /// Bytes still to drop before delivering: a server that ignored the range request sent the whole body.
     private var skipRemaining: Int64 = 0
+    /// Where a refused redirect pointed; the redirect's own response then ends the request.
+    private var refusedRedirect: URL?
 
     /// `offset` > 0 asks for the stream from that byte on (an HTTP range request).
-    public init(url: URL, startingAt offset: Int64 = 0, headers: [String: String] = [:]) {
+    public init(url: URL, startingAt offset: Int64 = 0, headers: [String: String] = [:],
+                refusesRedirect: @escaping @Sendable (URL) -> Bool = { _ in false }) {
         self.url = url
         startOffset = max(0, offset)
         self.headers = headers
+        self.refusesRedirect = refusesRedirect
     }
 
     public func open() async throws -> AsyncThrowingStream<Data, any Error> {
@@ -97,7 +104,7 @@ nonisolated public final class HTTPByteSource: NSObject, ByteSource, URLSessionD
     /// Seeks with a range request; a file is read from the offset directly.
     public func reopened(at offset: Int64) -> (any ByteSource)? {
         if url.isFileURL { return FileByteSource(url: url, startingAt: offset) }
-        return HTTPByteSource(url: url, startingAt: offset, headers: headers)
+        return HTTPByteSource(url: url, startingAt: offset, headers: headers, refusesRedirect: refusesRedirect)
     }
 
     /// Suspends the transfer while the reader catches up (URLSession then stops reading the file or the socket).
@@ -133,9 +140,13 @@ nonisolated public final class HTTPByteSource: NSObject, ByteSource, URLSessionD
             length = hasLength ? response.expectedContentLength + (partial ? startOffset : 0) : nil
             return waiter
         }
+        let refused = lock.withLock { refusedRedirect }
         if (200..<300).contains(status) {
             completionHandler(.allow)
             waiter?.resume()
+        } else if let refused {
+            completionHandler(.cancel)
+            waiter?.resume(throwing: ByteSourceRedirect(location: refused))
         } else {
             completionHandler(.cancel)
             waiter?.resume(throwing: PlaybackError(kind: .source, title: "The server returned HTTP \(status).",
@@ -148,6 +159,10 @@ nonisolated public final class HTTPByteSource: NSObject, ByteSource, URLSessionD
     public func urlSession(_ session: URLSession, task: URLSessionTask,
                            willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest,
                            completionHandler: @escaping @Sendable (URLRequest?) -> Void) {
+        if let target = request.url, refusesRedirect(target) {
+            lock.withLock { refusedRedirect = target }
+            return completionHandler(nil)
+        }
         guard !headers.isEmpty, !Self.isSameOrigin(request.url, url) else { return completionHandler(request) }
         var stripped = request
         for name in headers.keys { stripped.setValue(nil, forHTTPHeaderField: name) }

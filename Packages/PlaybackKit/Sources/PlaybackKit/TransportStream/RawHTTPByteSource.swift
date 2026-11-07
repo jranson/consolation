@@ -4,7 +4,8 @@
 //
 //  Streams a raw MPEG-TS URL over plain http:// with Network.framework, which App Transport Security doesn't cover.
 //  Used where ATS would block URLSession: raw transport streams over http to non-local hosts, and streams from a
-//  Bonjour service endpoint (another device on the local network) that has no URL.
+//  Bonjour service endpoint (another device on the local network) that has no URL. It follows no redirect: a URL
+//  stream's `open()` throws it as a `ByteSourceRedirect`, which `URLByteSource` follows.
 //
 
 import Foundation
@@ -201,6 +202,8 @@ nonisolated public final class RawHTTPByteSource: ByteSource, @unchecked Sendabl
                     if (200..<300).contains(status) {
                         opened?.resume()
                         opened = nil
+                    } else if let location = redirect(status: status, headers: headers) {
+                        fail(ByteSourceRedirect(location: location))
                     } else {
                         fail(PlaybackError(kind: .source, title: "The server returned HTTP \(status).",
                                            domain: "HTTP", code: status))
@@ -222,7 +225,16 @@ nonisolated public final class RawHTTPByteSource: ByteSource, @unchecked Sendabl
         }
     }
 
-    private func fail(_ error: PlaybackError) {
+    /// Where a URL stream's redirect points (a relative Location resolved against the URL); nil for anything else.
+    private func redirect(status: Int, headers: [String: String]) -> URL? {
+        guard case .url(let url) = target, [301, 302, 303, 307, 308].contains(status),
+              let location = headers["location"], !location.isEmpty,
+              let resolved = URL(string: location, relativeTo: url)?.absoluteURL,
+              ["http", "https"].contains(resolved.scheme?.lowercased() ?? "") else { return nil }
+        return resolved
+    }
+
+    private func fail(_ error: any Error) {
         opened?.resume(throwing: error)
         opened = nil
         continuation?.finish(throwing: error)

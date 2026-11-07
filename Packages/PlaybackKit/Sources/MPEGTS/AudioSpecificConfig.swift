@@ -49,6 +49,12 @@ nonisolated public struct AudioSpecificConfig: Sendable, Equatable {
     /// The rate the decoder outputs.
     public var outputSampleRate: Int { extensionSampleRate ?? sampleRate }
 
+    /// The profile as people know it: "HE-AAC v2" with PS, "HE-AAC" with SBR, else "AAC".
+    public var profileName: String {
+        if extensionObjectType == Self.objectTypePS { return "HE-AAC v2" }
+        return extensionSampleRate == nil ? "AAC" : "HE-AAC"
+    }
+
     /// Parses a config; nil when it is malformed or names a rate or object type that can't be AAC.
     public init?(_ data: Data) {
         guard !data.isEmpty, data.count <= 64 else { return nil }
@@ -92,6 +98,26 @@ nonisolated public struct AudioSpecificConfig: Sendable, Equatable {
         extensionSampleRate = nil
         extensionObjectType = nil
         bytes = Data([UInt8(truncatingIfNeeded: bits >> 8), UInt8(truncatingIfNeeded: bits)])
+    }
+
+    /// This core config with SBR (and, with `parametricStereo`, PS) signalled explicitly, hierarchically, at
+    /// `outputSampleRate`: for streams that show SBR only in their payload (ADTS, and old Matroska files). Nil for a
+    /// rate outside the table.
+    public func signallingSBR(outputSampleRate: Int, parametricStereo: Bool = false) -> AudioSpecificConfig? {
+        guard let core = Self.sampleRates.firstIndex(of: sampleRate),
+              let output = Self.sampleRates.firstIndex(of: outputSampleRate), (1...30).contains(objectType) else {
+            return nil
+        }
+        let type = parametricStereo ? Self.objectTypePS : Self.objectTypeSBR
+        // Extension object type (5 bits), core rate index (4), channelConfiguration (4), extension rate index (4),
+        // core object type (5) and three zero GASpecificConfig bits: 25 bits in four bytes.
+        let bits = (type << 27) | (core << 23) | ((channelConfiguration & 0x0F) << 19) | (output << 15)
+            | (objectType << 10)
+        var config = self
+        config.extensionObjectType = type
+        config.extensionSampleRate = outputSampleRate
+        config.bytes = Data([24, 16, 8, 0].map { UInt8(truncatingIfNeeded: bits >> $0) })
+        return config
     }
 
     private static func objectType(_ reader: inout BitReader) -> Int {

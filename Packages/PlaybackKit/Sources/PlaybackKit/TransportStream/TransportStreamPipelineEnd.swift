@@ -184,17 +184,32 @@ nonisolated extension TransportStreamPipeline {
         onEvent(.finished)
     }
 
+    var announced: Bool { announcedInfo != nil }
+
     /// Tells the engine what the stream is, at its first picture.
     func announceIfNeeded() {
         guard !announced, let video = processor.videoFacts else { return }
-        announced = true
         let codec = video.codec
         Self.log.info("First picture: \(codec, privacy: .public) \(video.width)x\(video.height), \(video.isInterlaced)")
-        let audioCodec = processor.audioPID == nil ? nil : (processor.audioIsEAC3 ? "E-AC-3" : "AC-3")
-        onEvent(.started(PlaybackStreamInfo(
-            videoCodec: video.codec, audioCodec: audioCodec, width: video.width, height: video.height,
+        let info = PlaybackStreamInfo(
+            videoCodec: video.codec, audioCodec: processor.audioCodecName, width: video.width, height: video.height,
             frameRate: video.frameRate, isInterlaced: video.isInterlaced, audioChannels: processor.audioChannels,
             audioLanguage: processor.audioPID == nil ? nil : preferredLanguage, isLive: !isFiniteSource,
-            unsupportedAudioCodec: unsupportedAudioCodec)))
+            unsupportedAudioCodec: unsupportedAudioCodec)
+        announcedInfo = info
+        onEvent(.started(info))
+    }
+
+    /// Updates the stream info when the audio's codec or channels become known after the first picture (audio can
+    /// trail its video in the multiplex, and AAC's profile is read from its first frames) or change.
+    func refreshAudioFacts() {
+        guard var info = announcedInfo, processor.audioPID != nil else { return }
+        let codec = processor.audioCodecName
+        let channels = processor.audioChannels
+        guard info.audioCodec != codec || info.audioChannels != channels else { return }
+        info.audioCodec = codec
+        info.audioChannels = channels
+        announcedInfo = info
+        onEvent(.info(info))
     }
 }

@@ -34,8 +34,12 @@ final class PlayerSession {
     var isFloating = false {
         didSet { updatePresentation() }
     }
-    /// A channel flip waiting out its debounce: the banner shows it before it tunes.
+    /// A channel flip waiting out its debounce (the banner shows it before it tunes), or a URL whose first bytes
+    /// are being read to choose its engine.
     private(set) var pendingItem: PlayingItem?
+    /// What URLs whose path names no container stream; `play(_:)` probes one before playing it. Nil plays them as
+    /// they are (in AVPlayer).
+    @ObservationIgnored var streamKinds: StreamKindCache?
     /// The tiles Picture in Picture closed, for "Restore Multi-view".
     var multiViewSnapshot: MultiViewSnapshot<PlayingItem>?
     /// The channels channel up/down moves through (the Live TV pane's current view).
@@ -156,7 +160,15 @@ final class PlayerSession {
 
     func play(_ url: URL) {
         channelList = []
-        start(.url(url))
+        guard let streamKinds, streamKinds.needsProbe(url) else { return start(.url(url)) }
+        // "Opening…" shows while the stream's first bytes are read.
+        pendingItem = .url(url)
+        flipTask?.cancel()
+        flipTask = Task { [weak self] in
+            await streamKinds.learn(url)
+            guard !Task.isCancelled, let self, self.pendingItem == .url(url) else { return }
+            self.start(.url(url))
+        }
     }
 
     /// Plays a library source's item: a recording, a movie, or a server's live channel.
@@ -259,6 +271,8 @@ final class PlayerSession {
     /// Starts the current item again from scratch (the error card's Retry).
     func retry() {
         guard let item else { return }
+        // A URL whose probe failed is probed again.
+        if case .url(let url) = item { return play(url) }
         start(item)
     }
 

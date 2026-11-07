@@ -3,7 +3,8 @@
 //  PlaybackKit
 //
 //  Classifies a user-supplied URL by its path extension, a few common query conventions and the HDHomeRun stream path,
-//  without touching the network. When this says `.unknown`, Quick Play sniffs the first bytes of the real GET instead.
+//  without touching the network. When this says `.unknown`, Quick Play reads the stream's first bytes instead
+//  (`StreamSniffer`).
 //
 
 import Foundation

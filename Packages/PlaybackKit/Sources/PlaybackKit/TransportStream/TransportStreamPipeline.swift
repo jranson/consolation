@@ -107,7 +107,8 @@ nonisolated final class TransportStreamPipeline: @unchecked Sendable {
     }
     var paused = false
     var stopped = false
-    var announced = false
+    /// The stream info sent at the first picture (updated as the audio's facts arrive); nil until then.
+    var announcedInfo: PlaybackStreamInfo?
     /// The reader's position and the ingest's backlog, shared with the ingest task.
     let progress = IngestProgress()
     /// Finite sources: whether this one is, and how far its end has got (TransportStreamPipelineEnd.swift).
@@ -299,6 +300,7 @@ nonisolated final class TransportStreamPipeline: @unchecked Sendable {
             for sample in processor.audioSamples(from: pes, payload: payload) where isPresentable(audio: sample) {
                 renderer.enqueueAudio(sample)
             }
+            refreshAudioFacts()
         }
     }
 

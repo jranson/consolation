@@ -62,6 +62,7 @@ final class AppModel {
                                 capacity: TunerTileCapacity(broker: tunerBroker)) { item, tile, isAdded in
             factory.makeEngine(for: item, tile: tile, isAdded: isAdded)
         }
+        session.streamKinds = factory.streamKinds
         session.resumeRecorder = ResumeRecorder(store: resumePositions, history: history)
         nowPlayingInfo = NowPlayingInfoController(session: session)
     }

@@ -1,6 +1,6 @@
 import Foundation
 import HTTPMPEG2Kit
-import PlaybackKit
+@testable import PlaybackKit
 import Testing
 @testable import MediaSourceKit
 
@@ -9,6 +9,11 @@ import Testing
 struct PlaybackInputMapperTests {
     static let hls = URL(string: "https://streams.example.com/live/master.m3u8")!
     static let mp4 = URL(string: "https://streams.example.com/vod/movie.mp4")!
+
+    /// The client a source's first request goes through (`URLByteSource` picks one for each hop).
+    static func client(_ source: any ByteSource) -> any ByteSource {
+        (source as? URLByteSource)?.firstClient ?? source
+    }
 
     static func avPlayerInput(_ descriptor: PlaybackDescriptor) throws -> (URL, AVPlayerEngine.InputKind)? {
         guard case .avPlayer(let input) = try PlaybackInputMapper.input(for: descriptor) else { return nil }
@@ -117,12 +122,12 @@ struct PlaybackInputMapperTests {
         let local = URL(string: "http://tuner.local:5004/auto/v9.1")!
         let localFeed = try #require(try Self.feed(PlaybackDescriptor(transport: .http(local, headers: [:]),
                                                                       isLive: true, start: .liveEdge)))
-        #expect(localFeed.makeSource() is HTTPByteSource)
+        #expect(Self.client(localFeed.makeSource()) is HTTPByteSource)
         #expect(localFeed.channel == nil)
         let remote = URL(string: "http://streams.example.com/live/stream.ts")!
         let remoteFeed = try #require(try Self.feed(PlaybackDescriptor(transport: .http(remote, headers: [:]),
                                                                        container: .mpegTS, isLive: true)))
-        #expect(remoteFeed.makeSource() is RawHTTPByteSource)
+        #expect(Self.client(remoteFeed.makeSource()) is RawHTTPByteSource)
     }
 
     @Test func requestHeadersReachBothEngines() throws {
@@ -134,14 +139,14 @@ struct PlaybackInputMapperTests {
         #expect(avInput.headers == token)
         let lan = URL(string: "http://192.168.1.20:32400/library/parts/1/2/file.ts")!
         let feed = try #require(try Self.feed(PlaybackDescriptor(transport: .http(lan, headers: token))))
-        #expect(feed.makeSource() is HTTPByteSource)
+        #expect(Self.client(feed.makeSource()) is HTTPByteSource)
     }
 
     @Test func recordedTransportStreamsPlayToTheirEnd() throws {
         let remote = URL(string: "http://streams.example.com/rec.ts")!
         let remoteFeed = try #require(try Self.feed(PlaybackDescriptor(transport: .http(remote, headers: [:]))))
         #expect(remoteFeed.growth == .complete)
-        #expect(remoteFeed.makeSource() is RawHTTPByteSource)
+        #expect(Self.client(remoteFeed.makeSource()) is RawHTTPByteSource)
         let file = try #require(try Self.feed(PlaybackDescriptor(transport: .file(URL(fileURLWithPath: "/tmp/a.ts")))))
         #expect(file.growth == .complete)
         #expect(file.makeSource() is FileByteSource)
@@ -157,10 +162,10 @@ struct PlaybackInputMapperTests {
         let token = ["X-Plex-Token": "secret"]
         let lan = URL(string: "http://192.168.1.20:32400/library/parts/1/2/file")!
         let plex = try #require(try feed(PlaybackDescriptor(transport: .http(lan, headers: token), container: .mkv)))
-        #expect(plex.makeSource() is HTTPByteSource)
+        #expect(Self.client(plex.makeSource()) is HTTPByteSource)
         let remote = URL(string: "http://streams.example.com/movie.mkv")!
-        #expect(try feed(PlaybackDescriptor(transport: .http(remote, headers: [:])))?.makeSource()
-            is RawHTTPByteSource)
+        let remoteFeed = try #require(try feed(PlaybackDescriptor(transport: .http(remote, headers: [:]))))
+        #expect(Self.client(remoteFeed.makeSource()) is RawHTTPByteSource)
         let local = URL(fileURLWithPath: "/tmp/Movie.webm")
         #expect(try feed(PlaybackDescriptor(transport: .file(local)))?.makeSource() is FileByteSource)
         #expect(PlaybackInputMapper.resolvedContainer(.unknown, url: remote) == .mkv)

@@ -3,7 +3,8 @@
 //  Consolation
 //
 //  Chooses the engine for what the user wants to play. HDHomeRun and other raw MPEG-TS never go to AVPlayer, and
-//  neither does Matroska (MKV), which AVFoundation can't open.
+//  neither does Matroska (MKV), which AVFoundation can't open. A URL whose path names no container plays as its
+//  first bytes said (`StreamKindCache`, filled by `PlayerSession` before the engine is made).
 //
 
 import Foundation
@@ -16,6 +17,8 @@ struct EngineFactory {
     let preferences: PlaybackPreferences
     /// Owns every tuner connection. Channels play through a broker subscription, so the engine never sees a URL.
     let broker: TunerBroker
+    /// What URLs whose path names no container stream, once `PlayerSession` probed them.
+    var streamKinds = StreamKindCache()
 
     /// About 19.4 Mbps, the most an ATSC 1.0 channel carries, to size a time-based buffer.
     static let liveBytesPerMinute = 19_400_000 / 8 * 60
@@ -57,18 +60,14 @@ struct EngineFactory {
     }
 
     private func makeEngine(for url: URL) -> any PlaybackEngine {
-        let kind = URLKindDetector.detect(url)
-        let needsRawClient = RawHTTPByteSource.isNeeded(for: url)
+        let kind = streamKinds.kind(for: url)
         switch kind {
         case .transportStream:
-            return TransportStreamEngine(makeSource: { () -> any ByteSource in
-                needsRawClient ? RawHTTPByteSource(url: url) : HTTPByteSource(url: url)
-            }, timeShift: timeShift)
+            return TransportStreamEngine(makeSource: { URLByteSource(url: url) }, timeShift: timeShift)
         case .matroska:
             // A file is read directly; HTTP(S) seeks with range requests.
             return MatroskaEngine(makeSource: { () -> any ByteSource in
-                if url.isFileURL { return FileByteSource(url: url) }
-                return needsRawClient ? RawHTTPByteSource(url: url) : HTTPByteSource(url: url)
+                url.isFileURL ? FileByteSource(url: url) : URLByteSource(url: url)
             })
         default:
             return AVPlayerEngine(url: url, kind: kind.avPlayerInputKind ?? .file)

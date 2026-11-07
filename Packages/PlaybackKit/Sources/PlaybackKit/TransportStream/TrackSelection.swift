@@ -31,7 +31,6 @@ nonisolated enum TrackSelection {
         for stream in program.streams {
             switch stream.kind {
             case .ac4: return "AC-4"
-            case .aac: return "AAC"
             case .mpegAudio: return "MPEG audio"
             default: continue
             }
@@ -45,22 +44,23 @@ nonisolated enum TrackSelection {
             switch stream.kind {
             case .ac3: AudioTrackOption(id: Int(stream.pid), language: stream.language, codec: "AC-3")
             case .eac3: AudioTrackOption(id: Int(stream.pid), language: stream.language, codec: "E-AC-3")
+            case .aac: AudioTrackOption(id: Int(stream.pid), language: stream.language, codec: "AAC")
             default: nil
             }
         }
     }
 
-    /// Dolby audio in the preferred language first (English 5.1 on US broadcasts), never "the last AC-3 PID".
+    /// Audio in the preferred language first, Dolby before AAC (English 5.1 on US broadcasts), never "the last
+    /// AC-3 PID".
     static func audio(in program: ProgramMap, preferredLanguage: String) -> ElementaryStream? {
-        let dolby = program.streams.filter { stream in
-            switch stream.kind {
-            case .ac3, .eac3: true
-            default: false
-            }
-        }
+        let playable = program.streams.filter { [.ac3, .eac3, .aac].contains($0.kind) }
         let preferred = preferredLanguage.lowercased()
-        let matching = dolby.filter { $0.language?.lowercased() == preferred }
+        let matching = playable.filter { $0.language?.lowercased() == preferred }
         // The PMT's channel hints are unreliable on air, so keep PMT order (the main track comes first).
-        return matching.first ?? dolby.first
+        return matching.first(where: isDolby) ?? matching.first ?? playable.first(where: isDolby) ?? playable.first
+    }
+
+    private static func isDolby(_ stream: ElementaryStream) -> Bool {
+        stream.kind == .ac3 || stream.kind == .eac3
     }
 }

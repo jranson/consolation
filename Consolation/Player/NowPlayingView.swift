@@ -23,7 +23,10 @@ struct NowPlayingView: View {
                     .opacity(0.6)
             }
             if session.engine == nil {
-                if let item = session.item {
+                if let item = session.item, case .url = item {
+                    // A URL whose first bytes are being read to choose its engine.
+                    PlayerMessage(systemImage: "network", title: "Opening \(item.title)…")
+                } else if let item = session.item {
                     PlayerMessage(systemImage: "antenna.radiowaves.left.and.right", title: "Tuning \(item.title)…")
                 } else {
                     PlayerMessage(systemImage: "play.rectangle.on.rectangle", title: "Nothing Playing",

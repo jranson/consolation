@@ -69,6 +69,7 @@ extension PlayerSession {
             }
             setChannelList(channels)
         }
+        if case .url(let url) = item { await streamKinds?.learn(url) }
         do throws(MultiViewError) {
             try await multiView.add(item)
             pictureInPicture?.startsAutomatically = false
@@ -82,6 +83,7 @@ extension PlayerSession {
     /// Plays `item` in `tile` instead (the arrangement panel's Replace). Returns why it couldn't, or nil.
     @discardableResult
     func replaceTile(_ tile: TileID, with item: PlayingItem) async -> String? {
+        if case .url(let url) = item { await streamKinds?.learn(url) }
         do throws(MultiViewError) {
             try await multiView.replace(tile, with: item)
             return nil

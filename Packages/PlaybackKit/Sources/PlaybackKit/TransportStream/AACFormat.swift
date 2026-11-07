@@ -4,7 +4,8 @@
 //
 //  AAC for the audio renderer: a format description whose magic cookie is the stream's AudioSpecificConfig wrapped
 //  in an MPEG-4 ES_Descriptor (ISO/IEC 14496-1 §7.2.6.5), the form an `esds` box carries and AudioToolbox's AAC
-//  decoder reads; and raw access units (Matroska's AAC frames) batched into sample buffers.
+//  decoder reads; raw access units (Matroska's AAC frames, ADTS frames without their headers) batched into sample
+//  buffers; and the SBR an ADTS stream shows only in its payload.
 //
 
 import AudioToolbox
@@ -80,13 +81,17 @@ nonisolated struct AACSampleBatcher {
 
     /// Adds one access unit presented at `pts` and returns any buffers completed.
     mutating func append(_ frame: UnsafeBufferPointer<UInt8>, pts: Int64) -> [CMSampleBuffer] {
+        append(Data(buffer: frame), pts: pts)
+    }
+
+    mutating func append(_ frame: Data, pts: Int64) -> [CMSampleBuffer] {
         var output: [CMSampleBuffer] = []
         if !frames.isEmpty, abs(pts - (firstPTS + Int64(frames.count) * frameTicks)) > frameTicks / 2,
            let sample = flush() {
             output.append(sample)
         }
         if frames.isEmpty { firstPTS = pts }
-        frames.append(Data(buffer: frame))
+        frames.append(frame)
         if frames.count >= Self.framesPerSample, let sample = flush() { output.append(sample) }
         return output
     }
@@ -100,5 +105,65 @@ nonisolated struct AACSampleBatcher {
 
     mutating func reset() {
         frames.removeAll(keepingCapacity: true)
+    }
+}
+
+/// Whether an ADTS stream is HE-AAC. Its header names only the AAC core (a 24 kHz LC core for 48 kHz HE-AAC); SBR
+/// and PS show in the payload, which AudioToolbox's own ADTS parser reads, usually from the first frame (not from an
+/// encoder's tiny priming frame). Decoding HE-AAC as its core loses everything above half the output rate.
+nonisolated enum ADTSProfile {
+    /// Frames to read for the profile before settling for the header's plain AAC.
+    static let maximumFrames = 8
+
+    /// The config to decode the stream of `frames` (its first, of one format) with: the header's, with SBR or PS
+    /// signalled when the payload carries them. Nil while AudioToolbox can't tell yet and more frames may come
+    /// (unless `final`), or when the header leaves the layout to a program config element.
+    static func config(for frames: [ADTSFrame], final: Bool) -> AudioSpecificConfig? {
+        guard let core = frames.first?.header.config else { return nil }
+        var bytes = Data()
+        for frame in frames { bytes.append(frame.frame) }
+        guard let richest = formats(of: bytes).first else { return final ? core : nil }
+        let rate = Int(richest.mSampleRate)
+        switch richest.mFormatID {
+        case kAudioFormatMPEG4AAC_HE_V2:
+            return core.signallingSBR(outputSampleRate: rate, parametricStereo: true) ?? core
+        case kAudioFormatMPEG4AAC_HE:
+            return core.signallingSBR(outputSampleRate: rate) ?? core
+        default:
+            return core
+        }
+    }
+
+    /// The formats AudioToolbox reads in whole ADTS frames, richest first (HE-AAC before its AAC core).
+    static func formats(of frame: Data) -> [AudioStreamBasicDescription] {
+        let list = FormatList()
+        var stream: AudioFileStreamID?
+        let opened = AudioFileStreamOpen(Unmanaged.passUnretained(list).toOpaque(), { context, stream, property, _ in
+            guard property == kAudioFileStreamProperty_FormatList else { return }
+            Unmanaged<FormatList>.fromOpaque(context).takeUnretainedValue().read(from: stream)
+        }, { _, _, _, _, _ in }, kAudioFileAAC_ADTSType, &stream)
+        guard opened == noErr, let stream else { return [] }
+        defer { AudioFileStreamClose(stream) }
+        // The listener runs during the parse, while `list` is alive.
+        _ = frame.withUnsafeBytes { raw in
+            AudioFileStreamParseBytes(stream, UInt32(raw.count), raw.baseAddress, [])
+        }
+        return list.formats
+    }
+
+    private final class FormatList {
+        var formats: [AudioStreamBasicDescription] = []
+
+        func read(from stream: AudioFileStreamID) {
+            var size: UInt32 = 0
+            guard AudioFileStreamGetPropertyInfo(stream, kAudioFileStreamProperty_FormatList, &size, nil) == noErr
+            else { return }
+            let count = Int(size) / MemoryLayout<AudioFormatListItem>.stride
+            guard count > 0 else { return }
+            var items = [AudioFormatListItem](repeating: AudioFormatListItem(), count: count)
+            guard AudioFileStreamGetProperty(stream, kAudioFileStreamProperty_FormatList, &size, &items) == noErr
+            else { return }
+            formats = items.prefix(Int(size) / MemoryLayout<AudioFormatListItem>.stride).map(\.mASBD)
+        }
     }
 }

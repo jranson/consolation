@@ -7,8 +7,9 @@ import PlaybackKit
 /// | Descriptor | Input |
 /// |---|---|
 /// | `.liveTuner` | `.transportStream`: the lease's open subscription, then a new broker subscription per reconnect |
-/// | `.http`, MPEG-TS | `.transportStream` over GETs (`HTTPByteSource`, or `RawHTTPByteSource` for plain http to a host
-///   outside the local network): one for a live stream, range requests to seek a recording |
+/// | `.http`, MPEG-TS | `.transportStream` over GETs (`URLByteSource`: URLSession, or Network.framework for plain http
+///   to a host outside the local network, following redirects between them): one for a live stream, range requests
+///   to seek a recording |
 /// | `.file`, MPEG-TS | `.transportStream` read from the file (`FileByteSource`), seekable |
 /// | `.http` or `.file`, MKV | `.matroska`, read like MPEG-TS (range requests or the file), seekable with its Cues |
 /// | `.hls`, `.dash` | `.avPlayer(.hls)`, `.avPlayer(.dash)` |
@@ -97,8 +98,8 @@ public nonisolated enum PlaybackInputMapper {
         }
     }
 
-    /// A file read from disk, or GETs through URLSession where App Transport Security allows it. A live stream
-    /// opens one GET per connection attempt; a recording plays to its end and seeks with range requests (the
+    /// A file read from disk, or GETs through the client App Transport Security allows (`URLByteSource`). A live
+    /// stream opens one GET per connection attempt; a recording plays to its end and seeks with range requests (the
     /// engine learns which from the source's `isFinite`).
     private static func transportStreamFeed(_ url: URL, headers: [String: String], isLive: Bool)
         -> TransportStreamFeed {
@@ -107,20 +108,15 @@ public nonisolated enum PlaybackInputMapper {
                 FileByteSource(url: url)
             }
         }
-        let needsRawClient = headers.isEmpty && RawHTTPByteSource.isNeeded(for: url)
         return TransportStreamFeed(growth: isLive ? .live : .complete, programNumber: nil, channel: nil) { _ in
-            if needsRawClient { return RawHTTPByteSource(url: url) }
-            return HTTPByteSource(url: url, headers: headers)
+            URLByteSource(url: url, headers: headers)
         }
     }
 
     /// A Matroska file read from disk, or through GETs like MPEG-TS; seeks reopen it at an offset.
     private static func matroskaFeed(_ url: URL, headers: [String: String]) -> MatroskaFeed {
         if url.isFileURL { return MatroskaFeed { FileByteSource(url: url) } }
-        let needsRawClient = headers.isEmpty && RawHTTPByteSource.isNeeded(for: url)
-        return MatroskaFeed { () -> any ByteSource in
-            needsRawClient ? RawHTTPByteSource(url: url) : HTTPByteSource(url: url, headers: headers)
-        }
+        return MatroskaFeed { URLByteSource(url: url, headers: headers) }
     }
 }
 

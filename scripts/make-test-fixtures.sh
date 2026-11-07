@@ -6,13 +6,15 @@
 #
 #   scripts/make-test-fixtures.sh
 #
-# Needs the ffmpeg command-line tool (`brew install ffmpeg`) and Swift. FFmpeg is only used here, never shipped or
-# linked; byte surgery FFmpeg can't do (A/53 captions, a signalled splice, header-only excerpts) is in
+# Needs the ffmpeg command-line tool (`brew install ffmpeg`), Swift and macOS's afconvert (Apple's AAC encoder, the
+# only one here that writes HE-AAC). FFmpeg is only used here, never shipped or linked; byte surgery FFmpeg can't do (A/53 captions, a signalled splice, header-only excerpts) is in
 # scripts/ts-fixture-tool.swift, written from the specs.
 #
 # Output (MPEG-2 video and AC-3 audio in MPEG-TS, like ATSC 1.0):
 #   PlaybackKitTests/Fixtures/testsrc-480i.ts      decoder tests: 10 pictures of testsrc, 480i TFF
 #   PlaybackKitTests/Fixtures/two-programs.ts      pipeline program selection: a copy of golden-two-programs.ts
+#   PlaybackKitTests/Fixtures/aac-*.adts           0.2 s of pink noise and a tone as ADTS AAC (LC at 24 kHz, HE-AAC
+#                                                  and HE-AAC v2 at 48 kHz), the IPTV form, for the SBR probe
 #   MPEGTSTests/Fixtures/golden-1080i.ts           1080i TFF, open GOPs, AC-3 5.1 eng + 2.0 spa, A/53 608 captions
 #   MPEGTSTests/Fixtures/golden-720p.ts            720p59.94, three GOPs (the later two open), AC-3 2.0
 #   MPEGTSTests/Fixtures/golden-720p-mid-gop.ts    the 720p file cut at a packet partway through it
@@ -103,6 +105,13 @@ video 352x240 30000/1001 6 6 0 "$WORK/two.m2v"
     -program program_num=3:title=One:st=0:st=2 -program program_num=4:title=Two:st=1:st=3 \
     "${TS[@]}" -mpegts_start_pid 0x41 "$GOLDEN/golden-two-programs.ts"
 cp "$GOLDEN/golden-two-programs.ts" "$OUT/two-programs.ts"
+
+# ADTS AAC as IPTV streams carry it: the header names a 24 kHz core either way; only the payload shows SBR and PS.
+"${FF[@]}" -f lavfi -t 0.2 -i "anoisesrc=color=pink:amplitude=0.2:seed=7" -f lavfi -t 0.2 -i "sine=frequency=440" \
+    -filter_complex "[0][1]amix=inputs=2,aformat=channel_layouts=stereo" -ar 48000 "$WORK/noise.wav"
+afconvert -f adts -d aac@24000 -b 48000 "$WORK/noise.wav" "$OUT/aac-lc-24k.adts"
+afconvert -f adts -d aach@48000 -b 64000 "$WORK/noise.wav" "$OUT/aac-he-48k.adts"
+afconvert -f adts -d aacp@48000 -b 32000 "$WORK/noise.wav" "$OUT/aac-he-v2-48k.adts"
 
 # Header-only excerpts of the gitignored local captures (see ts-fixture-tool.swift: PSI and headers only; every
 # picture, sound and caption byte is zeroed and PSIP is dropped). Skipped where the captures are absent.

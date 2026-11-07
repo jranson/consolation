@@ -1,5 +1,5 @@
 import Foundation
-import PlaybackKit
+@testable import PlaybackKit
 import Testing
 @testable import MediaSourceKit
 
@@ -118,7 +118,7 @@ struct PlexSourceTests {
             return
         }
         #expect(feed.growth == .complete)
-        #expect(feed.makeSource() is HTTPByteSource)
+        #expect(PlaybackInputMapperTests.client(feed.makeSource()) is HTTPByteSource)
     }
 
     @Test func recentRecordingsComeFromTheDVRsSections() async throws {

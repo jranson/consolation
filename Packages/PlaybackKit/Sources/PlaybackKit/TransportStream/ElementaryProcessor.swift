@@ -4,7 +4,7 @@
 //
 //  Turns demuxed PES packets into CoreMedia sample buffers: MPEG-2, H.264 and HEVC pictures (one per sample; H.264
 //  and HEVC as 4-byte length-prefixed NAL units with a format description from their parameter sets) and batches of
-//  AC-3/E-AC-3 frames. Runs on the pipeline's serial queue.
+//  AC-3/E-AC-3 frames or of AAC access units from ADTS. Runs on the pipeline's serial queue.
 //
 
 import CoreMedia
@@ -45,17 +45,21 @@ nonisolated struct VideoStreamFacts: Equatable, Sendable {
 }
 
 nonisolated struct ElementaryProcessor {
-    /// AC-3 frames per audio sample buffer (about 128 ms at 48 kHz).
+    /// AC-3 frames per audio sample buffer (about 128 ms at 48 kHz; AAC batches its own, `AACSampleBatcher`).
     static let audioFramesPerSample = 4
     static let log = Logger(subsystem: "PlaybackKit", category: "TransportStream")
 
     private(set) var videoPID: UInt16?
     private(set) var audioPID: UInt16?
     private(set) var videoKind: StreamKind?
+    /// `.aac` for AAC in ADTS; any other kind is AC-3 or E-AC-3.
+    private(set) var audioKind: StreamKind?
     /// What the stream info reports about the video, from the latest format.
     var videoFacts: VideoStreamFacts? { sampleBuilder.facts }
     private(set) var audioChannels: Int?
     private(set) var audioIsEAC3 = false
+    /// The AAC stream's config, with the SBR its payload showed, from its first frames.
+    private(set) var aacConfig: AudioSpecificConfig?
     private var videoFramer = MPEG2Framer()
     /// H.264 and HEVC; nil for MPEG-2.
     private var nalFramer: NALVideoFramer?
@@ -65,6 +69,12 @@ nonisolated struct ElementaryProcessor {
     private var sampleBuilder: VideoSampleBuilder
     private var audioFormat: CMAudioFormatDescription?
     private var pendingAudio: [AC3Frame] = []
+    private var adtsFramer = ADTSFramer()
+    private var aac: AACSampleBatcher?
+    /// The ADTS format `aac` was made for; another starts a new batcher.
+    private var aacFormat: ADTSHeader.Format?
+    /// Frames held while AudioToolbox reads their profile (`ADTSProfile`), before `aac` exists.
+    private var aacProbe: [ADTSFrame] = []
     /// A container's frame duration for H.264 and HEVC (`NALVideoFramer.nominalFrameTicks`); nil for MPEG-TS.
     var nominalFrameTicks: Int64? {
         didSet { nalFramer?.nominalFrameTicks = nominalFrameTicks }
@@ -79,10 +89,15 @@ nonisolated struct ElementaryProcessor {
             videoKind = video?.kind
             restartFramer(video: true)
         }
-        if audio?.pid != audioPID {
-            audioFramer = AC3Framer()
-            pendingAudio = []
+        if audio?.pid != audioPID || audio?.kind != audioKind {
+            audioKind = audio?.kind
+            restartFramer(video: false)
+            audioChannels = nil
+            audioIsEAC3 = audio?.kind == .eac3
             audioFormat = nil
+            aac = nil
+            aacFormat = nil
+            aacConfig = nil
         }
         videoPID = video?.pid
         audioPID = audio?.pid
@@ -99,6 +114,9 @@ nonisolated struct ElementaryProcessor {
         guard video else {
             audioFramer = AC3Framer()
             pendingAudio = []
+            adtsFramer = ADTSFramer()
+            aac?.reset()
+            aacProbe = []
             return
         }
         videoFramer = MPEG2Framer()
@@ -166,8 +184,18 @@ nonisolated struct ElementaryProcessor {
         }
     }
 
+    /// The audio codec as the stream info names it ("HE-AAC" once the first AAC frame showed SBR).
+    var audioCodecName: String? {
+        switch audioKind {
+        case nil: nil
+        case .aac: aacConfig?.profileName ?? "AAC"
+        default: audioIsEAC3 ? "E-AC-3" : "AC-3"
+        }
+    }
+
     /// `audioSamples(from:)` for a PES whose payload is lent (`TSDemuxer.feed(_:_:)`).
     mutating func audioSamples(from pes: PESPacket, payload: UnsafeBufferPointer<UInt8>) -> [CMSampleBuffer] {
+        if audioKind == .aac { return aacSamples(from: pes, payload: payload) }
         var output: [CMSampleBuffer] = []
         for frame in audioFramer.append(payload, of: pes) {
             if audioFormat == nil || audioChannels != frame.channelCount || audioIsEAC3 != frame.isEAC3 {
@@ -183,9 +211,58 @@ nonisolated struct ElementaryProcessor {
         return output
     }
 
+    /// AAC access units from ADTS frames, batched. A new format (rate, channels or profile) is probed for SBR: its
+    /// frames wait until AudioToolbox has read the profile from them.
+    private mutating func aacSamples(from pes: PESPacket, payload: UnsafeBufferPointer<UInt8>) -> [CMSampleBuffer] {
+        var output: [CMSampleBuffer] = []
+        for frame in adtsFramer.append(payload, of: pes) {
+            if frame.header.format != aacFormat {
+                if let sample = aac?.flush() { output.append(sample) }
+                aacFormat = frame.header.format
+                aac = nil
+                aacConfig = nil
+                aacProbe = []
+            }
+            guard var batcher = aac.take() else {
+                aacProbe.append(frame)
+                output += startAAC(final: aacProbe.count >= ADTSProfile.maximumFrames)
+                continue
+            }
+            output += batcher.append(frame.accessUnit, pts: frame.pts)
+            aac = batcher
+        }
+        return output
+    }
+
+    /// Makes the batcher once the held frames show their profile (or, when `final`, with the header's plain AAC)
+    /// and returns what the held frames fill.
+    private mutating func startAAC(final: Bool) -> [CMSampleBuffer] {
+        guard let config = ADTSProfile.config(for: aacProbe, final: final),
+              var batcher = AACSampleBatcher(config: config, channels: config.channelCount, pool: pool) else {
+            if final { aacProbe = [] }
+            return []
+        }
+        aacConfig = config
+        // Parametric stereo makes stereo from a mono core.
+        audioChannels = config.extensionObjectType == AudioSpecificConfig.objectTypePS ? 2 : config.channelCount
+        var output: [CMSampleBuffer] = []
+        for frame in aacProbe { output += batcher.append(frame.accessUnit, pts: frame.pts) }
+        aacProbe = []
+        aac = batcher
+        return output
+    }
+
     /// The audio frames still batched, for the end of a finite stream.
     mutating func flushPendingAudio() -> CMSampleBuffer? {
-        flushAudio()
+        guard audioKind == .aac else { return flushAudio() }
+        // Frames still held for their profile (a stream shorter than the probe) play as one buffer.
+        if aac == nil, let first = aacProbe.first, let config = ADTSProfile.config(for: aacProbe, final: true),
+           let format = AACFormat.description(config, channels: config.channelCount) {
+            defer { aacProbe = [] }
+            return SampleFormats.audioSample(frames: aacProbe.map(\.accessUnit), format: format, pts: first.pts,
+                                             pool: pool)
+        }
+        return aac?.flush()
     }
 
     private mutating func flushAudio() -> CMSampleBuffer? {

@@ -33,7 +33,7 @@ nonisolated enum MatroskaAudioCodec: Sendable, Equatable {
     var displayName: String {
         switch self {
         case .dolby(let isEAC3): isEAC3 ? "E-AC-3" : "AC-3"
-        case .aac: "AAC"
+        case .aac(let config): config.profileName
         }
     }
 }
@@ -60,7 +60,9 @@ nonisolated enum MatroskaTrackSelection {
         guard let rate = track.samplingFrequency.map({ Int($0.rounded()) }),
               var config = AudioSpecificConfig(sampleRate: rate, channels: track.channels) else { return nil }
         if codec.hasSuffix("/SBR") {
-            config.extensionSampleRate = track.outputSamplingFrequency.map { Int($0.rounded()) } ?? rate * 2
+            let output = track.outputSamplingFrequency.map { Int($0.rounded()) } ?? rate * 2
+            if let signalled = config.signallingSBR(outputSampleRate: output) { return .aac(signalled) }
+            config.extensionSampleRate = output
             config.extensionObjectType = AudioSpecificConfig.objectTypeSBR
         }
         return .aac(config)
