@@ -39,7 +39,7 @@ When you add a Plex server, Consolation connects only to the address you added, 
 
 Consolation stores its settings, including the sources and other settings you configure. No data leaves your device except for standard video transmission protocols that you initiate.
 
-Quick Play history stays on your device and can be cleared in Settings.
+Quick Play history stays on your device and can be cleared in Settings. For a local file you chose, the history also keeps a bookmark, the system's permission for Consolation to open that file again; clearing the history removes it.
 
 Where you stopped in videos that aren't live (for Home's Continue Watching) also stays on your device, never for live channels. Positions of Quick Play videos are kept only while Quick Play history is on, and clearing the history removes them. Home keeps a copy of its shelves in your device's caches so it can show them at once. It holds channel and video names and the names of the servers they come from, never full stream addresses or passwords. A Quick Play video's name is the last part of its address; Consolation shows the server's name instead when that part looks like a token, but it can't recognize every token, which is one reason the Quick Play History shelf is off by default.
 

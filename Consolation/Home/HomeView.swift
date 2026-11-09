@@ -5,8 +5,8 @@
 //  Home: the user's shelves on an Etagere. Each window keeps its own Etagere model (HomeEtagere), so switching panes
 //  keeps every shelf where it was. "Go" plays the Active ShelfCard; an empty shelf's placeholder runs its fitting
 //  action (Settings › Sources, the Live TV pane, the system's Local Network setting); Back, Esc or controller B leaves
-//  for the pill. Card actions (Favorite, Info, Edit Home) are in the context menu, because in mode 1 the Etagere is the
-//  only control on the page.
+//  for the pill. Card actions (Add to Multi-view and Play Solo while something plays, Favorite, Info, Edit Home) are in
+//  the context menu, because in mode 1 the Etagere is the only control on the page.
 //
 
 import EtagereKit
@@ -137,17 +137,20 @@ struct HomeView: View {
 
     @EtagereActionBuilder
     private func actions(for card: VideoCard) -> [EtagereAction] {
+        // While something plays, a long press leads with Add to Multi-view (first, so Apple TV focuses it), then
+        // Play Solo, which replaces whatever plays.
+        if session.isActive, card.kind != .captureCard {
+            EtagereAction(String(localized: "Add to Multi-view"), systemImage: "plus.rectangle.on.rectangle") {
+                addToMultiView(card)
+            }
+            EtagereAction(String(localized: "Play Solo"), systemImage: "play") { play(card) }
+        }
         // Favorites on the tuner are read-only; only the app's own can be toggled.
         if card.favorite != .device, let key = card.playable.item.channelKey?.stringValue {
             if card.favorite == .app {
                 EtagereAction(String(localized: "Unfavorite"), systemImage: "heart.slash") { favorites.toggle(key) }
             } else {
                 EtagereAction(String(localized: "Favorite"), systemImage: "heart") { favorites.toggle(key) }
-            }
-        }
-        if session.isActive, card.kind != .captureCard {
-            EtagereAction(String(localized: "Add to Multi-view"), systemImage: "plus.rectangle.on.rectangle") {
-                addToMultiView(card)
             }
         }
         EtagereAction(String(localized: "Info"), systemImage: "info.circle") { infoCard = card }

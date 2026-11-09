@@ -75,6 +75,29 @@ struct AppModelTests {
         #expect(history.entries.isEmpty)
     }
 
+    @Test func quickPlayHistoryKeepsBookmarksForLocalFilesOnly() throws {
+        let legacy = Data(#"[{"url":"https://example.com/a.m3u8","lastPlayed":0}]"#.utf8)
+        let decoded = try JSONDecoder().decode([QuickPlayEntry].self, from: legacy)
+        #expect(decoded.first?.bookmark == nil)
+
+        let file = URL.temporaryDirectory.appending(path: "ConsolationTests-\(UUID().uuidString).mkv")
+        try Data([0x1A, 0x45, 0xDF, 0xA3]).write(to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let history = QuickPlayHistory(documents: documents(), defaults: defaults())
+        history.record(URL(string: "https://example.com/b.m3u8")!)
+        history.record(file)
+        #expect(history.entries.first?.bookmark != nil)
+        #expect(history.entries.last?.bookmark == nil)
+        let bookmark = try #require(history.entries.first?.bookmark)
+        let restored = try #require(LocalFileAccess.restore(bookmark))
+        #expect(restored.url.standardizedFileURL.path == file.standardizedFileURL.path)
+
+        // Recording again when no new bookmark can be made keeps the one it had.
+        try FileManager.default.removeItem(at: file)
+        history.record(file)
+        #expect(history.entries.first?.bookmark != nil)
+    }
+
     @Test func documentsRoundTripAndMigrateFromDefaults() {
         let directory = URL.temporaryDirectory.appending(path: "ConsolationTests-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: directory) }

@@ -2,10 +2,12 @@
 //  QuickPlayView.swift
 //  Consolation
 //
-//  Play any URL (HLS, DASH, MP4, raw MPEG-TS), with a history of what played.
+//  Play any URL (HLS, DASH, MP4, raw MPEG-TS) or, on Mac, iPad and iPhone, a local file the user chooses, with a
+//  history of what played.
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct QuickPlayView: View {
     @Environment(QuickPlayHistory.self) private var history
@@ -17,6 +19,7 @@ struct QuickPlayView: View {
     @State private var urlText = ""
     @State private var inputError: String?
     @State private var confirmClear = false
+    @State private var choosingFile = false
     @FocusState private var fieldFocused: Bool
 
     var body: some View {
@@ -58,6 +61,9 @@ struct QuickPlayView: View {
                 if let first = strings.first { urlText = first }
             }
             .labelStyle(.iconOnly)
+            Button("Choose File…", systemImage: "folder") { choosingFile = true }
+                .labelStyle(.iconOnly)
+                .help("Choose File…")
             #endif
             Button("Play", action: play)
                 .buttonStyle(.borderedProminent)
@@ -66,8 +72,13 @@ struct QuickPlayView: View {
         #if !os(tvOS)
         .dropDestination(for: URL.self) { urls, _ in
             guard let url = urls.first else { return false }
+            // A dropped file carries access the sandbox needs; a typed path to it would not.
+            history.allowReading(url)
             urlText = url.absoluteString
             return true
+        }
+        .fileImporter(isPresented: $choosingFile, allowedContentTypes: [.data]) { result in
+            if case .success(let url) = result { playFile(url) }
         }
         #endif
     }
@@ -91,9 +102,14 @@ struct QuickPlayView: View {
                 ForEach(history.entries) { entry in
                     QuickPlayHistoryRow(entry: entry) { start(entry.url) } onRemove: { history.remove(entry) }
                         .contextMenu {
-                            Button("Play") { start(entry.url) }
+                            // While something plays: Add to Multi-view first (Apple TV focuses it), then Play Solo.
                             if session.isActive {
-                                Button("Add to Multi-view") { addToMultiView(entry.url) }
+                                Button("Add to Multi-view", systemImage: "plus.rectangle.on.rectangle") {
+                                    addToMultiView(entry.url)
+                                }
+                                Button("Play Solo", systemImage: "play") { start(entry.url) }
+                            } else {
+                                Button("Play", systemImage: "play") { start(entry.url) }
                             }
                             #if os(tvOS)
                             // Apple TV: the row is one full-width button, so down from the URL field lands on the
@@ -118,9 +134,29 @@ struct QuickPlayView: View {
             inputError = "That doesn't look like an http, https or file URL."
             return
         }
+        // The sandbox reads only files the user chose: a typed path gets no access.
+        if url.isFileURL, !LocalFileAccess.isReadable(url) {
+            inputError = Self.unreadableFileMessage
+            return
+        }
         inputError = nil
         start(url)
     }
+
+    #if os(tvOS)
+    private static let unreadableFileMessage = "Apple TV can't open that file."
+    #else
+    private static let unreadableFileMessage =
+        "Consolation can't open a typed file path. Choose the file with the folder button, or drop it here."
+
+    /// A file from Choose File…: its access starts before it plays, and the field shows its URL.
+    private func playFile(_ url: URL) {
+        history.allowReading(url)
+        urlText = url.absoluteString
+        inputError = nil
+        start(url)
+    }
+    #endif
 
     private func addToMultiView(_ url: URL) {
         localNetwork.perform(for: url) {

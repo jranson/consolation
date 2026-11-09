@@ -33,6 +33,7 @@ struct LibraryFolderView: View {
                 } else {
                     List(items) { item in
                         LibraryItemRow(item: item, isStarting: playing == item.id) { select(item) }
+                            .contextMenu { playMenu(for: item) }
                     }
                     .listStyle(.plain)
                 }
@@ -64,22 +65,44 @@ struct LibraryFolderView: View {
     }
 
     private func select(_ item: MediaItem) {
-        switch item.kind {
-        case .folder, .series, .season:
+        if LibraryItemRow.isFolder(item) {
             open(LibraryLocation(source: location.source, parent: item.id, title: item.title))
-        default:
+        } else {
             play(item)
         }
     }
 
+    /// The long press on a video or channel: while something plays, Add to Multi-view first (Apple TV focuses it),
+    /// then Play Solo; otherwise Play. Folders open on Select and have no menu.
+    @ViewBuilder private func playMenu(for item: MediaItem) -> some View {
+        if !LibraryItemRow.isFolder(item) {
+            if session.isActive {
+                Button("Add to Multi-view", systemImage: "plus.rectangle.on.rectangle") { addToMultiView(item) }
+                Button("Play Solo", systemImage: "play") { play(item) }
+            } else {
+                Button("Play", systemImage: "play") { play(item) }
+            }
+        }
+    }
+
     private func play(_ item: MediaItem) {
+        start(item) { media in session.play(media) }
+    }
+
+    /// Adds the item as a multi-view tile (or plays it, if playback stopped meanwhile).
+    private func addToMultiView(_ item: MediaItem) {
+        start(item) { media in await session.addToMultiView(.media(media)) }
+    }
+
+    /// Resolves the item through its server, hands it to `begin`, and opens the player.
+    private func start(_ item: MediaItem, begin: @escaping (SourceMedia) async -> Void) {
         playing = item.id
         Task {
             defer { playing = nil }
             do {
                 guard let media = try await registry.libraryMedia(for: item.id) else { return }
                 failure = nil
-                session.play(media)
+                await begin(media)
                 shell.selection = .nowPlaying
             } catch {
                 failure = Self.message(for: error, status: registry.status(of: location.source))
@@ -126,7 +149,10 @@ private struct LibraryItemRow: View {
         }
     }
 
-    private var isFolder: Bool {
+    private var isFolder: Bool { Self.isFolder(item) }
+
+    /// Folders, series and seasons open in place; everything else plays.
+    static func isFolder(_ item: MediaItem) -> Bool {
         switch item.kind {
         case .folder, .series, .season: true
         default: false

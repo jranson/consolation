@@ -197,12 +197,15 @@ struct ChannelColumn: View {
     }
 
     @ViewBuilder private func favoriteMenu(for channel: LiveChannel) -> some View {
-        Button("Play") { onPlay(channel) }
+        // While something plays: Add to Multi-view first (Apple TV focuses it), then Play Solo.
+        if let onAddToMultiView {
+            Button("Add to Multi-view", systemImage: "plus.rectangle.on.rectangle") { onAddToMultiView(channel) }
+            Button("Play Solo", systemImage: "play") { onPlay(channel) }
+        } else {
+            Button("Play", systemImage: "play") { onPlay(channel) }
+        }
         if let simulcast = channel.simulcast, let match = channels.first(where: { $0.guideNumber == simulcast }) {
             Button("Watch \(match.displayName) (with sound)") { onPlay(match) }
-        }
-        if let onAddToMultiView {
-            Button("Add to Multi-view") { onAddToMultiView(channel) }
         }
         switch channel.favorite {
         case .device:
