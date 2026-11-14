@@ -18,10 +18,10 @@ struct ConsolationCommands: Commands {
     let previewTransformMenuRevision: Int
     let onPreviewTransformChanged: () -> Void
 
-    @AppStorage(CaptureVideoStatsUserDefaults.showStatsKey) private var showVideoStats = false
-    @AppStorage(CaptureVideoStatsUserDefaults.statsLocationKey) private var videoStatsLocationRawValue =
-        CaptureVideoStatsUserDefaults.defaultLocation
-    @AppStorage(CaptureVideoStatsUserDefaults.disableLowFPSWarningKey) private var disableLowFPSWarningOverlay = false
+    @AppStorage(VideoStatsUserDefaults.showStatsKey) private var showVideoStats = false
+    @AppStorage(VideoStatsUserDefaults.statsLocationKey) private var videoStatsLocationRawValue =
+        VideoStatsUserDefaults.defaultLocation
+    @AppStorage(VideoStatsUserDefaults.disableLowFPSWarningKey) private var disableLowFPSWarningOverlay = false
     #if os(macOS)
     @AppStorage(ViewerWindowUserDefaults.isAlwaysOnTopKey) private var isViewerWindowAlwaysOnTop = false
     #endif
@@ -65,7 +65,7 @@ struct ConsolationCommands: Commands {
 
         Menu("Video Stats") {
             videoStatsMenuOption(title: "Off", location: nil)
-            ForEach(CaptureVideoStatsOverlayLocation.menuLocations, id: \.rawValue) { location in
+            ForEach(VideoStatsOverlayLocation.menuLocations, id: \.rawValue) { location in
                 videoStatsMenuOption(title: location.menuTitle, location: location)
             }
         }
@@ -150,7 +150,7 @@ struct ConsolationCommands: Commands {
         }
     }
 
-    private func videoStatsMenuOption(title: String, location: CaptureVideoStatsOverlayLocation?) -> some View {
+    private func videoStatsMenuOption(title: String, location: VideoStatsOverlayLocation?) -> some View {
         checkmarkButton(Text(title), isOn: isVideoStatsOptionSelected(location: location)) {
             if let location {
                 showVideoStats = true
@@ -161,7 +161,7 @@ struct ConsolationCommands: Commands {
         }
     }
 
-    private func isVideoStatsOptionSelected(location: CaptureVideoStatsOverlayLocation?) -> Bool {
+    private func isVideoStatsOptionSelected(location: VideoStatsOverlayLocation?) -> Bool {
         switch (showVideoStats, location) {
         case (false, nil):
             return true

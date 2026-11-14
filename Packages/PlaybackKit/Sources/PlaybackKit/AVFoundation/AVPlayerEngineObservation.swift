@@ -104,6 +104,9 @@ extension AVPlayerEngine {
         if item.status == .readyToPlay {
             info.isLive = item.duration.isIndefinite
         }
+        if info.container == nil, inputKind == .file {
+            info.container = Self.fileContainerName(url)
+        }
         if info.frameRate == nil {
             let rates = item.tracks.filter { $0.isEnabled }.map(\.currentVideoFrameRate).filter { $0 > 0 }
             info.frameRate = rates.first.flatMap { ISOFragment.snapped(Double($0)) }
@@ -157,6 +160,15 @@ extension AVPlayerEngine {
         var audioCodec: String?
         var audioChannels: Int?
         var audioLanguage: String?
+    }
+
+    /// A progressive file's container, from its extension (AVPlayer only takes ISO BMFF here).
+    nonisolated static func fileContainerName(_ url: URL) -> String {
+        switch url.pathExtension.lowercased() {
+        case "mov", "qt": "QuickTime"
+        case "mp4", "m4v": "MP4"
+        default: "MP4/QuickTime"
+        }
     }
 
     nonisolated static func fourCCString(_ code: FourCharCode) -> String {

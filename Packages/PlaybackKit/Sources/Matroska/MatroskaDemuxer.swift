@@ -25,6 +25,8 @@ nonisolated public struct MatroskaDemuxer: Sendable {
     /// The Segment's header, once its first Cluster began (or as given to `init(continuing:at:atElement:)`).
     public private(set) var segment: MatroskaSegment?
     public private(set) var failure: MatroskaError?
+    /// The EBML header's DocType ("matroska" or "webm"), once read.
+    private var docType: String?
     public private(set) var statistics = MatroskaStatistics()
 
     struct OpenElement: Sendable {
@@ -194,8 +196,9 @@ nonisolated public struct MatroskaDemuxer: Sendable {
             var progressed = false
             guard let payload = take(element, bytes, limit: Int64(Self.maximumHeaderSize),
                                      progressed: &progressed) else { return progressed }
-            if let type = MatroskaDocType.docType(in: payload), !MatroskaDocType.accepted.contains(type) {
-                failure = .notMatroska
+            if let type = MatroskaDocType.docType(in: payload) {
+                docType = type
+                if !MatroskaDocType.accepted.contains(type) { failure = .notMatroska }
             }
             return true
         case MatroskaID.segment where segmentElement == nil && sawHeader:
@@ -245,10 +248,11 @@ nonisolated public struct MatroskaDemuxer: Sendable {
             }
             let dataOffset = segmentStart
             let cues = cuesRead ? nil : seekPositions[MatroskaID.cues].flatMap { Int64(exactly: $0) }
-            let announced = MatroskaSegment(info: info, tracks: tracks, dataOffset: dataOffset,
+            var announced = MatroskaSegment(info: info, tracks: tracks, dataOffset: dataOffset,
                                             dataSize: open.end.map { $0 - dataOffset },
                                             cuesOffset: cues.map { dataOffset + $0 },
                                             firstClusterOffset: element.offset)
+            announced.docType = docType
             segment = announced
             handler(.segment(announced))
         }

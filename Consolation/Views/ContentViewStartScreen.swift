@@ -36,23 +36,11 @@ struct ContentViewStartScreen: View {
         .frame(minWidth: 560, maxWidth: 560)
     }
 
+    /// The pane's name, like the other panes' titles: no app icon, name or version, which belong to the app.
     private var header: some View {
-        HStack(spacing: 12) {
-            AppIconImage()
-                .frame(width: 52, height: 52)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-            HStack(alignment: .lastTextBaseline, spacing: 6) {
-                Text(AppIdentifier.name)
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundStyle(.white)
-
-                Text("v" + BuildInfo.version)
-                    .font(.system(size: 16))
-                    .foregroundStyle(.white.opacity(0.7))
-            }
-            .multilineTextAlignment(.center)
-        }
+        Text(ShellItem.captureCard.title)
+            .font(.largeTitle.bold())
+            .foregroundStyle(.white)
     }
 
     @ViewBuilder

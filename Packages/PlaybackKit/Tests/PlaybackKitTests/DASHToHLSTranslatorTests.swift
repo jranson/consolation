@@ -35,7 +35,8 @@ struct DASHToHLSTranslatorTests {
         #expect(presentation.mediaPlaylists.keys.sorted() == ["audio-0.m3u8", "video-0.m3u8"])
         let info = presentation.streamInfo
         #expect(info == PlaybackStreamInfo(videoCodec: "HEVC", audioCodec: "AAC", width: 3_832, height: 1_600,
-                                           frameRate: 24_000.0 / 1_001.0, audioChannels: 6, audioLanguage: "eng"))
+                                           frameRate: 24_000.0 / 1_001.0, audioChannels: 6, audioLanguage: "eng",
+                                           container: "fMP4"))
     }
 
     @Test func writesSampleMediaPlaylists() throws {

@@ -9,11 +9,9 @@ extension ContentView {
         showVideoStats && capture.state == .running
     }
 
-    var resolvedStatsLocation: CaptureVideoStatsOverlayLocation {
-        CaptureVideoStatsOverlayLocation(rawValue: videoStatsLocationRawValue) ?? .bottomLeft
+    var resolvedStatsLocation: VideoStatsOverlayLocation {
+        VideoStatsOverlayLocation(rawValue: videoStatsLocationRawValue) ?? .bottomLeft
     }
-
-    var statsFontSize: CGFloat { 13 }
 
     var isStatsOverlayFullscreenActive: Bool {
         #if os(macOS)
@@ -23,14 +21,20 @@ extension ContentView {
         #endif
     }
 
-    var videoStatsLabel: String? {
-        guard let stats = capture.videoFrameRateStats else { return nil }
-        let resolution = resolutionLabel
+    /// The capture viewer's items for the shared Video Stats overlay, or none while capture isn't running.
+    static func videoStatsItems(_ capture: CaptureSessionManager) -> [String] {
+        guard capture.state == .running, let stats = capture.videoFrameRateStats else { return [] }
+        let resolution = capture.videoSize.map { "\(Int($0.width.rounded()))x\(Int($0.height.rounded()))" } ?? "—"
         let measured = Int(stats.presentationFPS.rounded())
         let configuredFPS = capture.configuredVideoFrameRate(fallbackMeasured: measured)
-        let stutter = formatThreeDecimals(stats.maxPresentationGap)
-        return "Res: \(resolution) @ \(configuredFPS) | " +
-            "FPS: \(stats.frames) | Drops: \(stats.droppedFrames) | Stutter: \(stutter)"
+        let stutter = String(format: "%.3f", stats.maxPresentationGap)
+        return ["Res: \(resolution) @ \(configuredFPS)", "FPS: \(stats.frames)", "Drops: \(stats.droppedFrames)",
+                "Stutter: \(stutter)"]
+    }
+
+    var statsOverlayInsets: (VideoStatsOverlayLocation) -> EdgeInsets {
+        let isFullscreen = isStatsOverlayFullscreenActive
+        return { $0.edgePadding(isFullscreen: isFullscreen) }
     }
 
     var shouldShowMaxFPSWarning: Bool {
@@ -44,43 +48,11 @@ extension ContentView {
         return "FPS: \(stats.frames)"
     }
 
-    var maxFPSWarningLocation: CaptureVideoStatsOverlayLocation {
+    var maxFPSWarningLocation: VideoStatsOverlayLocation {
         if shouldShowStatsOverlay && resolvedStatsLocation == .bottomLeft {
             return .bottomRight
         }
         return .bottomLeft
-    }
-
-    var resolutionLabel: String {
-        guard let size = capture.videoSize else { return "—" }
-        let width = Int(size.width.rounded())
-        let height = Int(size.height.rounded())
-        return "\(width)x\(height)"
-    }
-
-    func formatThreeDecimals(_ value: Double) -> String {
-        String(format: "%.3f", value)
-    }
-
-    @ViewBuilder
-    func statsOverlay(_ label: String) -> some View {
-        VStack {
-            Text(label)
-                .font(.system(size: statsFontSize, weight: .medium, design: .monospaced))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .frame(maxHeight: 21)
-                .background(Color(white: 0.2).opacity(0.9), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                }
-        }
-        .padding(resolvedStatsLocation.edgePadding(isFullscreen: isStatsOverlayFullscreenActive))
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: resolvedStatsLocation.alignment)
-        .allowsHitTesting(false)
     }
 
     @ViewBuilder

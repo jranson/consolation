@@ -11,6 +11,7 @@
 
 import AVFoundation
 import Foundation
+import Matroska
 import os
 
 nonisolated extension MatroskaPipeline {
@@ -173,7 +174,8 @@ nonisolated extension MatroskaPipeline {
         Self.log.info("First picture: \(video.codec, privacy: .public) \(video.width)x\(video.height)")
         var info = PlaybackStreamInfo(
             videoCodec: video.codec, width: video.width, height: video.height, frameRate: video.frameRate,
-            isInterlaced: video.isInterlaced, isLive: false, unsupportedAudioCodec: unsupportedAudioCodec)
+            isInterlaced: video.isInterlaced, isLive: false, unsupportedAudioCodec: unsupportedAudioCodec,
+            container: segment?.docType == "webm" ? "WebM" : "Matroska")
         applyAudioFacts(to: &info)
         announcedInfo = info
         onEvent(.started(info))

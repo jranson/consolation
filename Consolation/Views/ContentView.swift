@@ -31,10 +31,10 @@ struct ContentView: View {
     @State var previewZoomLevel = 0.0
     @State var previewPanOffset = CGSize.zero
     @State var previewPanDragLastTranslation = CGSize.zero
-    @AppStorage(CaptureVideoStatsUserDefaults.showStatsKey) var showVideoStats = false
-    @AppStorage(CaptureVideoStatsUserDefaults.statsLocationKey) var videoStatsLocationRawValue =
-        CaptureVideoStatsUserDefaults.defaultLocation
-    @AppStorage(CaptureVideoStatsUserDefaults.disableLowFPSWarningKey) var disableLowFPSWarningOverlay = false
+    @AppStorage(VideoStatsUserDefaults.showStatsKey) var showVideoStats = false
+    @AppStorage(VideoStatsUserDefaults.statsLocationKey) var videoStatsLocationRawValue =
+        VideoStatsUserDefaults.defaultLocation
+    @AppStorage(VideoStatsUserDefaults.disableLowFPSWarningKey) var disableLowFPSWarningOverlay = false
     @State var isShowingMaxFPSInfo = false
     #if os(macOS)
     @AppStorage(ViewerWindowUserDefaults.isAlwaysOnTopKey) var isViewerWindowAlwaysOnTop = false
@@ -211,9 +211,8 @@ extension ContentView {
             // sequence is: preview layer exists, layer has the session, then the session starts.
             captureVideoPreview
 
-            if shouldShowStatsOverlay, let statsLabel = videoStatsLabel {
-                statsOverlay(statsLabel)
-            }
+            // The overlay reads the once-a-second stats in its own body, so they don't re-evaluate this view.
+            VideoStatsOverlay(items: { [capture] in Self.videoStatsItems(capture) }, insets: statsOverlayInsets)
 
             if shouldShowMaxFPSWarning, let label = maxFPSWarningLabel { maxFPSWarningOverlay(label) }
 

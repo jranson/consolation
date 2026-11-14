@@ -195,7 +195,7 @@ nonisolated extension TransportStreamPipeline {
             videoCodec: video.codec, audioCodec: processor.audioCodecName, width: video.width, height: video.height,
             frameRate: video.frameRate, isInterlaced: video.isInterlaced, audioChannels: processor.audioChannels,
             audioLanguage: processor.audioPID == nil ? nil : preferredLanguage, isLive: !isFiniteSource,
-            unsupportedAudioCodec: unsupportedAudioCodec)
+            unsupportedAudioCodec: unsupportedAudioCodec, container: "MPEG-TS")
         announcedInfo = info
         onEvent(.started(info))
     }

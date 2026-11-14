@@ -75,10 +75,13 @@ nonisolated public struct PlaybackStreamInfo: Equatable, Sendable {
     /// The stream's audio is in a codec no Apple platform decodes (for example "AC-4" on ATSC 3.0 channels), so it
     /// plays without sound: show "no audio (AC-4)". `audioCodec` is nil then.
     public var unsupportedAudioCodec: String?
+    /// The container the stream arrives in ("MPEG-TS", "Matroska", "fMP4"), when the engine knows it.
+    public var container: String?
 
     public init(videoCodec: String? = nil, audioCodec: String? = nil, width: Int? = nil, height: Int? = nil,
                 frameRate: Double? = nil, isInterlaced: Bool? = nil, audioChannels: Int? = nil,
-                audioLanguage: String? = nil, isLive: Bool = false, unsupportedAudioCodec: String? = nil) {
+                audioLanguage: String? = nil, isLive: Bool = false, unsupportedAudioCodec: String? = nil,
+                container: String? = nil) {
         self.videoCodec = videoCodec
         self.audioCodec = audioCodec
         self.width = width
@@ -89,6 +92,7 @@ nonisolated public struct PlaybackStreamInfo: Equatable, Sendable {
         self.audioLanguage = audioLanguage
         self.isLive = isLive
         self.unsupportedAudioCodec = unsupportedAudioCodec
+        self.container = container
     }
 }
 

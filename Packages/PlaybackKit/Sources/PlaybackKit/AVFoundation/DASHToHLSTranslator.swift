@@ -180,7 +180,7 @@ public nonisolated struct DASHToHLSTranslator: Sendable {
 
     private func streamInfo(selection: DASHSelection, variants: [HLSVariantEntry],
                             probes: [String: MediaTrackInfo]) -> PlaybackStreamInfo {
-        var info = PlaybackStreamInfo(isLive: false)
+        var info = PlaybackStreamInfo(isLive: false, container: "fMP4")
         if let video = selection.videos.first, let variant = variants.first {
             info.videoCodec = variant.codecs.first.map(HLSCodecs.displayName)
             info.width = variant.width

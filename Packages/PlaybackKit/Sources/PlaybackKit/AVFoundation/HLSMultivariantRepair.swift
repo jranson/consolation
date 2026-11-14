@@ -187,6 +187,8 @@ public nonisolated enum HLSMultivariantRepair {
     private static func streamInfo(playlist: HLSMultivariantPlaylist, variant: HLSMultivariantPlaylist.Variant,
                                    probe: HLSRepairProbe) -> PlaybackStreamInfo {
         var info = PlaybackStreamInfo(isLive: false)
+        // The probe reads init segments, which only fragmented MP4 renditions have.
+        if probe.video != nil || probe.audio != nil { info.container = "fMP4" }
         if let video = probe.video {
             info.videoCodec = HLSCodecs.displayName(of: video.codecs)
             info.width = video.width

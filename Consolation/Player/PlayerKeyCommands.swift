@@ -102,7 +102,7 @@ private struct PlayerKeyCommandsModifier: ViewModifier {
                 return .handled
             }
             .onKeyPress("i") {
-                session.statsVisible.toggle()
+                VideoStatsUserDefaults.toggleShown()
                 return .handled
             }
             .onKeyPress(.leftArrow) {

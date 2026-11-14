@@ -60,6 +60,8 @@ nonisolated public struct MatroskaSegment: Sendable, Equatable {
     public var cuesOffset: Int64?
     /// The first Cluster's absolute offset.
     public var firstClusterOffset: Int64
+    /// The EBML header's DocType ("matroska" or "webm"), when the header was read.
+    public var docType: String?
 
     public init(info: MatroskaSegmentInfo, tracks: [MatroskaTrack], dataOffset: Int64, dataSize: Int64?,
                 cuesOffset: Int64?, firstClusterOffset: Int64) {

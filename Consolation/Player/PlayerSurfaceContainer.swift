@@ -165,7 +165,7 @@ private struct MultiViewPlayerKeys: ViewModifier {
                 }
             }
             .onKeyPress("c") { handled { session.toggleCaptions() } }
-            .onKeyPress("i") { handled { session.statsVisible.toggle() } }
+            .onKeyPress("i") { handled { VideoStatsUserDefaults.toggleShown() } }
         #endif
     }
 

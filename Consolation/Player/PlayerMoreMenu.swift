@@ -13,6 +13,8 @@ import SwiftUI
 struct PlayerMoreMenu: View {
     @Environment(PlayerSession.self) private var session
     @Environment(PlaybackPreferences.self) private var preferences
+    /// The same setting as the capture viewer's Video Stats.
+    @AppStorage(VideoStatsUserDefaults.showStatsKey) private var showVideoStats = false
 
     var body: some View {
         Menu {
@@ -30,8 +32,8 @@ struct PlayerMoreMenu: View {
                 } else if session.multiViewSnapshot != nil {
                     Button("Restore Multi-view", systemImage: "square.grid.2x2.fill") { session.restoreMultiView() }
                 }
-                Button(session.statsVisible ? "Hide Stats" : "Show Stats", systemImage: "chart.bar.xaxis") {
-                    session.statsVisible.toggle()
+                Button(showVideoStats ? "Hide Stats" : "Show Stats", systemImage: "chart.bar.xaxis") {
+                    showVideoStats.toggle()
                 }
             }
         } label: {

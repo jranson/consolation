@@ -2,48 +2,14 @@
 //  CaptureVideoStatsUserDefaults.swift
 //  Consolation
 //
+//  The capture viewer's edge padding for the shared Video Stats overlay (Components/VideoStatsOverlay.swift, which
+//  also holds the overlay's settings).
+//
 
 #if !os(tvOS)
 import SwiftUI
 
-enum CaptureVideoStatsOverlayLocation: String, CaseIterable {
-    case bottomLeft
-    case bottomRight
-    case bottomCenter
-    case topLeft
-    case topRight
-    case topCenter
-
-    static var menuLocations: [CaptureVideoStatsOverlayLocation] {
-        #if os(iOS)
-        [.bottomLeft, .bottomRight]
-        #else
-        allCases
-        #endif
-    }
-
-    var menuTitle: String {
-        switch self {
-        case .bottomLeft: "Bottom Left"
-        case .bottomRight: "Bottom Right"
-        case .bottomCenter: "Bottom Center"
-        case .topLeft: "Top Left"
-        case .topRight: "Top Right"
-        case .topCenter: "Top Center"
-        }
-    }
-
-    var alignment: Alignment {
-        switch self {
-        case .bottomLeft: .bottomLeading
-        case .bottomRight: .bottomTrailing
-        case .bottomCenter: .bottom
-        case .topLeft: .topLeading
-        case .topRight: .topTrailing
-        case .topCenter: .top
-        }
-    }
-
+extension VideoStatsOverlayLocation {
     func edgePadding(isFullscreen: Bool) -> EdgeInsets {
         let topPadding: CGFloat = isFullscreen ? 2 : -30
 
@@ -56,12 +22,5 @@ enum CaptureVideoStatsOverlayLocation: String, CaseIterable {
             EdgeInsets(top: 0, leading: 2, bottom: 2, trailing: 2)
         }
     }
-}
-
-enum CaptureVideoStatsUserDefaults {
-    nonisolated static let showStatsKey = AppIdentifier.scoped("showVideoStatsOverlay")
-    nonisolated static let statsLocationKey = AppIdentifier.scoped("videoStatsOverlayLocation")
-    nonisolated static let disableLowFPSWarningKey = AppIdentifier.scoped("disableLowFPSWarningOverlay")
-    nonisolated static let defaultLocation = CaptureVideoStatsOverlayLocation.bottomLeft.rawValue
 }
 #endif

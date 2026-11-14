@@ -76,12 +76,10 @@ struct NowPlayingChrome: View {
                     .allowsHitTesting(false)
             }
         }
-        .overlay(alignment: .topTrailing) {
-            if session.statsVisible, let engine = session.engine {
-                PlayerStatsOverlay(engine: engine, diagnostics: session.liveControls?.diagnostics)
-                    .padding(.top, 40)
-                    .padding(.trailing, 16)
-            }
+        // Video Stats: the overlay reads the engine's numbers in its own body, so they don't re-evaluate the chrome.
+        .overlay {
+            VideoStatsOverlay(items: { [session] in PlayerStats.items(for: session) },
+                              insets: { [session] in PlayerStats.insets(for: $0, session: session) })
         }
         .overlay(alignment: .topLeading) {
             if !session.enteredDigits.isEmpty {

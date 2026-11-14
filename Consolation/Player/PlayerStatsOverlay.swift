@@ -8,45 +8,78 @@
 import PlaybackKit
 import SwiftUI
 
-struct PlayerStatsOverlay: View {
-    let engine: any PlaybackEngine
-    let diagnostics: PlaybackDiagnostics?
-    @Environment(PlayerSession.self) private var session
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            ForEach(lines, id: \.self) { line in
-                Text(line)
-            }
-        }
-        .font(.caption.monospaced())
-        .foregroundStyle(.white)
-        .padding(10)
-        .background(.black.opacity(0.65), in: .rect(cornerRadius: 8))
-        .allowsHitTesting(false)
-    }
-
-    private var lines: [String] {
-        let info = engine.streamInfo
-        var result: [String] = []
-        let size = info.width.map { "\($0)x\(info.height ?? 0)" } ?? "—"
-        let rate = info.frameRate.map { String(format: "%.3f fps", $0) } ?? "—"
-        let scan = info.isInterlaced == true ? "interlaced → deinterlaced to field rate" : "progressive"
-        result.append("Video: \(info.videoCodec ?? "—") \(size) \(rate), \(scan)")
-        let channels = info.audioChannels.map { "\($0) ch" } ?? ""
-        result.append("Audio: \(info.audioCodec ?? "—") \(channels) \(info.audioLanguage ?? "")")
-        if session.currentChannel != nil {
-            result.append("Source: tuner")
-        }
-        if let diagnostics {
-            result.append(String(format: "Bitrate: %.1f Mbps", diagnostics.bytesPerSecond * 8 / 1_000_000))
-            result.append(String(format: "Buffered: audio %.2f s, video %.2f s",
-                                 diagnostics.audioSecondsBuffered, diagnostics.videoSecondsBuffered))
-            result.append("Frames: \(diagnostics.framesShown) shown, \(diagnostics.framesDropped) dropped")
-            result.append(String(format: "Behind live: %.1f s, reconnects: %d",
-                                 diagnostics.secondsBehindLive, diagnostics.reconnects))
+/// What the player feeds the shared Video Stats overlay (`VideoStatsOverlay`).
+enum PlayerStats {
+    /// The items for what the session plays now, or none when nothing plays. Reads observable engine state, so call
+    /// it only from the overlay's `items` closure.
+    static func items(for session: PlayerSession) -> [String] {
+        guard let engine = session.engine, session.isActive else { return [] }
+        var result = streamItems(info: engine.streamInfo, delivery: delivery(of: engine, item: session.item))
+        if let live = engine as? any LivePlaybackControlling {
+            result += diagnosticItems(live.diagnostics, isLive: engine.streamInfo.isLive)
+        } else if let player = engine as? AVPlayerEngine {
+            result.append("Stalls: \(player.stallCount)")
         }
         return result
+    }
+
+    /// Video, audio, container and protocol, each kept short: the overlay shows every item on one line.
+    nonisolated static func streamItems(info: PlaybackStreamInfo, delivery: Delivery?) -> [String] {
+        let size = info.width.map { "\($0)x\(info.height ?? 0)" } ?? "—"
+        // "29.97i" or "59.94p", as broadcast formats are written.
+        let scan = info.isInterlaced == true ? "i" : "p"
+        let rate = info.frameRate.map { " @ " + String(format: "%.2f", $0) + scan } ?? ""
+        var result = ["Video: \(info.videoCodec ?? "—") \(size)\(rate)"]
+        if let codec = info.unsupportedAudioCodec {
+            result.append("Audio: \(codec) (unsupported)")
+        } else {
+            let parts = [info.audioCodec ?? "—", info.audioChannels.map(channelLayout), info.audioLanguage]
+            result.append("Audio: \(parts.compactMap { $0 }.joined(separator: " "))")
+        }
+        // HLS that AVPlayer opened directly doesn't say which of its two segment formats it carries.
+        if let container = info.container ?? (delivery?.isHLS == true ? "TS or fMP4" : nil) {
+            result.append("Container: \(container)")
+        }
+        if let delivery { result.append("Protocol: \(delivery.text)") }
+        return result
+    }
+
+    /// "Mono", "Stereo", "5.1", "7.1", or the channel count.
+    nonisolated static func channelLayout(_ channels: Int) -> String {
+        switch channels {
+        case 1: "Mono"
+        case 2: "Stereo"
+        case 6: "5.1"
+        case 8: "7.1"
+        default: "\(channels) ch"
+        }
+    }
+
+    nonisolated static func diagnosticItems(_ diagnostics: PlaybackDiagnostics, isLive: Bool) -> [String] {
+        var result = [String(format: "Bitrate: %.1f Mbps", diagnostics.bytesPerSecond * 8 / 1_000_000)]
+        result.append(String(format: "Buffer: A %.1fs V %.1fs",
+                             diagnostics.audioSecondsBuffered, diagnostics.videoSecondsBuffered))
+        result.append("Drops: \(diagnostics.framesDropped)")
+        if isLive { result.append(String(format: "Behind: %.1fs", diagnostics.secondsBehindLive)) }
+        if diagnostics.reconnects > 0 { result.append("Reconnects: \(diagnostics.reconnects)") }
+        return result
+    }
+
+    /// Keeps the panel clear of the top banner area and, while they are up, of the controls at the bottom.
+    static func insets(for location: VideoStatsOverlayLocation, session: PlayerSession) -> EdgeInsets {
+        #if os(tvOS)
+        // Inside the TV's overscan margins.
+        let edge: CGFloat = 60
+        let side: CGFloat = 80
+        let controlsHeight: CGFloat = 300
+        #else
+        let edge: CGFloat = 40
+        let side: CGFloat = 16
+        let controlsHeight: CGFloat = 150
+        #endif
+        if location.isTop { return EdgeInsets(top: edge, leading: side, bottom: 0, trailing: side) }
+        let bottom = session.controlsVisible && session.isActive ? controlsHeight : min(edge, 28)
+        return EdgeInsets(top: 0, leading: side, bottom: bottom, trailing: side)
     }
 }
 

@@ -45,8 +45,11 @@ case "$platform" in
 esac
 
 echo "Building $configuration for $DEVICE ($platform, $udid)"
+# -allowProvisioningDeviceRegistration registers a device the team hasn't seen yet (Xcode does this on its own; the
+# command line needs the flag), so a new device or team works without a trip to the developer portal.
 xcodebuild -project Consolation.xcodeproj -scheme Consolation -configuration "$configuration" \
-    -derivedDataPath build/DerivedData -destination "id=$udid" -allowProvisioningUpdates build -quiet
+    -derivedDataPath build/DerivedData -destination "id=$udid" -allowProvisioningUpdates \
+    -allowProvisioningDeviceRegistration build -quiet
 xcrun devicectl device install app --device "$udid" "build/DerivedData/Build/Products/$products/Consolation.app" \
     >/dev/null
 

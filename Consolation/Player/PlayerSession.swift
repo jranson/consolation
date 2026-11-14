@@ -73,8 +73,6 @@ final class PlayerSession {
     }
     var controlsVisible = false
     var bannerVisible = false
-    /// The technical stats overlay (I key).
-    var statsVisible = false
     /// The Add Tile or Replace picker on screen, if any.
     var tilePicker: TilePickerRequest?
     /// A short note about multi-view ("Every tuner is in use"), shown over the player for a moment.
