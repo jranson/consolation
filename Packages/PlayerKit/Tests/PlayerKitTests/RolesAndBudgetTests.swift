@@ -69,15 +69,24 @@ struct RolesTests {
 }
 
 struct BudgetTests {
-    @Test func capsComeFromCPUGridAndWidth() {
+    @Test func capsComeFromCPUAndGrid() {
         let budget = TileBudget(maximumTiles: 6)
-        #expect(budget.limit(containerWidth: 1200) == 6)
-        #expect(budget.limit(containerWidth: 390) == 2)
-        #expect(budget.limit(containerWidth: nil) == 6)
-        #expect(TileBudget(maximumTiles: 12).limit(containerWidth: 1920) == 9)
-        #expect(budget.admitsTile(after: 5, containerWidth: 1200))
-        #expect(!budget.admitsTile(after: 6, containerWidth: 1200))
-        #expect(!budget.admitsTile(after: 2, containerWidth: 390))
+        #expect(budget.limit == 6)
+        #expect(TileBudget(maximumTiles: 12).limit == 9)
+        #expect(budget.admitsTile(after: 5))
+        #expect(!budget.admitsTile(after: 6))
+    }
+
+    @Test func smallPlayersShowTheStackFromThreeTiles() {
+        let budget = TileBudget(maximumTiles: 4)
+        let landscapePhone = CGSize(width: 844, height: 390)
+        let portraitPhone = CGSize(width: 390, height: 844)
+        #expect(!budget.showsStackOnly(tileCount: 2, in: landscapePhone))
+        #expect(budget.showsStackOnly(tileCount: 3, in: landscapePhone))
+        #expect(budget.showsStackOnly(tileCount: 4, in: portraitPhone))
+        #expect(!budget.showsStackOnly(tileCount: 4, in: CGSize(width: 1920, height: 1080)))
+        #expect(!budget.showsStackOnly(tileCount: 4, in: CGSize(width: 744, height: 1133)))
+        #expect(!budget.showsStackOnly(tileCount: 4, in: .zero))
     }
 
     @Test func platformDefault() {

@@ -145,7 +145,7 @@ public extension MultiViewSession {
 
 extension MultiViewSession {
     func checkBudget() throws(MultiViewError) {
-        let limit = budget.limit(containerWidth: containerSize.width)
+        let limit = budget.limit
         guard tiles.count < limit else { throw .tileLimit(limit) }
     }
 

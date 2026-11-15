@@ -20,6 +20,9 @@ struct PlayerSurfaceContainer: View {
     /// True for the lower-right mini player, false for the full Now Playing area.
     let isMini: Bool
 
+    /// This view's size: the whole player area, mini player or not.
+    @State private var areaSize: CGSize?
+
     static let miniSize = CGSize(width: 320, height: 180)
     static let miniInset: CGFloat = 20
     static let miniCornerRadius: CGFloat = 14
@@ -45,6 +48,12 @@ struct PlayerSurfaceContainer: View {
             }
         }
         .ignoresSafeArea()
+        // Whether the player is small (the stack instead of the grid from three tiles on) is about the full player
+        // area, which is this view's size even while it shows the mini player.
+        .onGeometryChange(for: CGSize.self, of: \.size) { areaSize = $0 }
+        .onChange(of: session.videoWindow == shell.id ? areaSize : nil, initial: true) { _, size in
+            if let size { session.multiView.fullPlayerSize = size }
+        }
         .animation(.smooth(duration: 0.35), value: isMini)
         // The first window to show the player or the mini player takes the video, and so does a window still open
         // when the one showing it closes.

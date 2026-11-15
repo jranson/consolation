@@ -166,13 +166,64 @@ struct MultiViewSessionTests {
         #expect(await session.admission(for: "2.1").isAllowed)
     }
 
-    @Test func compactWidthLimitsAdding() async throws {
-        let session = makeSession(shop: shop)
+    /// The CPU cap is the only cap: a phone-sized or mini player adds tiles like any other.
+    @Test func playerSizeDoesNotLimitAdding() async throws {
+        let session = makeSession(budget: TileBudget(maximumTiles: 4), shop: shop)
         session.containerSize = CGSize(width: 390, height: 844)
         session.start("a")
         try await session.add("b")
+        session.presentation = .mini
+        session.containerSize = CGSize(width: 320, height: 180)
+        try await session.add("c")
+        try await session.add("d")
+        #expect(session.tiles.count == 4)
         #expect(session.addTileLimitReason != nil)
-        await #expect(throws: MultiViewError.self) { try await session.add("c") }
+        await #expect(throws: MultiViewError.self) { try await session.add("e") }
+    }
+
+    @Test func smallPlayerShowsTheStackFromTheThirdTile() async throws {
+        let session = makeSession(shop: shop)
+        session.containerSize = CGSize(width: 844, height: 390)
+        session.start("a")
+        let tileB = try await session.add("b")
+        #expect(session.mode == .grid(focused: tileB))
+        let tileC = try await session.add("c")
+        #expect(session.isStackOnly)
+        #expect(session.mode == .foreground(tileC))
+        // No grid to go back to: Back and ↑ report nothing done, ← → still change the tile in front.
+        #expect(!session.back())
+        #expect(!session.focus(.upward))
+        #expect(session.mode == .foreground(tileC))
+        #expect(session.focus(.leftward))
+        #expect(session.mode == .foreground(tileB))
+        // Two tiles fit side by side again.
+        session.remove(tileC)
+        #expect(!session.isStackOnly)
+        #expect(session.back())
+        #expect(session.mode == .grid(focused: tileB))
+    }
+
+    @Test func shrinkingThePlayerBringsTheFocusedTileForward() async throws {
+        let session = makeSession(shop: shop)
+        session.start("a")
+        try await session.add("b")
+        let tileC = try await session.add("c")
+        #expect(session.mode == .grid(focused: tileC))
+        // The mini player's own size never counts.
+        session.presentation = .mini
+        session.containerSize = CGSize(width: 320, height: 180)
+        #expect(session.mode == .grid(focused: tileC))
+        session.containerSize = CGSize(width: 1920, height: 1080)
+        session.presentation = .full
+        #expect(session.mode == .grid(focused: tileC))
+        // The window's size does, even while the mini player shows.
+        session.fullPlayerSize = CGSize(width: 390, height: 844)
+        #expect(session.mode == .foreground(tileC))
+        // A bigger player keeps the stack until the user returns to the grid.
+        session.fullPlayerSize = CGSize(width: 1920, height: 1080)
+        #expect(session.mode == .foreground(tileC))
+        #expect(session.back())
+        #expect(session.mode == .grid(focused: tileC))
     }
 
     @Test func replaceKeepsTheTileAndSwapsTheEngine() async throws {

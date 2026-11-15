@@ -23,7 +23,11 @@ public final class MultiViewSession<Item: Hashable & Sendable> {
     public internal(set) var state: MultiViewState?
     /// How big the player is; the mini and hidden player decode only the audible tile.
     public var presentation: PlayerPresentation = .full {
-        didSet { if presentation != oldValue { stateChanged() } }
+        didSet {
+            guard presentation != oldValue else { return }
+            enforceStackOnly()
+            stateChanged()
+        }
     }
     /// "Audio follows focus" (the host's setting). Off: grid audio stays on the last foreground tile.
     public var audioFollowsFocus: Bool {
@@ -34,8 +38,15 @@ public final class MultiViewSession<Item: Hashable & Sendable> {
         didSet { if prefersReducedResourceUsage != oldValue { applyRoles() } }
     }
     public var budget: TileBudget
-    /// The player's size, reported by `MultiViewPlayer`; decides the grid shape and the compact cap.
-    public var containerSize: CGSize = .zero
+    /// The player's size, reported by `MultiViewPlayer`; decides the grid shape.
+    public var containerSize: CGSize = .zero {
+        didSet { if containerSize != oldValue { enforceStackOnly() } }
+    }
+    /// The size the player has when full, from a host that also shows it smaller (a mini player): whether the player
+    /// is small is about the window, not the mini player. Nil: `containerSize` while the player is full.
+    public var fullPlayerSize: CGSize? {
+        didSet { if fullPlayerSize != oldValue { enforceStackOnly() } }
+    }
     /// Bumped by `requestFocus()`; `MultiViewPlayer` then moves focus to the focused (or front) tile.
     public private(set) var focusRequest = 0
 
@@ -88,8 +99,17 @@ public final class MultiViewSession<Item: Hashable & Sendable> {
 
     /// Why no tile can be added now (the budget), or nil.
     public var addTileLimitReason: String? {
-        let limit = budget.limit(containerWidth: containerSize.width)
+        let limit = budget.limit
         return tiles.count < limit ? nil : MultiViewError.tileLimit(limit).message
+    }
+
+    /// Whether the player is too small for a grid of this many tiles, so it shows the stack only (one tile in
+    /// front, ← → or a swipe for the others). Decided while the player is full; the mini player keeps the mode.
+    public var isStackOnly: Bool { showsStackOnly(tileCount: state?.tiles.count ?? 0) }
+
+    func showsStackOnly(tileCount: Int) -> Bool {
+        guard presentation == .full else { return false }
+        return budget.showsStackOnly(tileCount: tileCount, in: fullPlayerSize ?? containerSize)
     }
 
     // MARK: - Starting and stopping
@@ -139,7 +159,10 @@ public final class MultiViewSession<Item: Hashable & Sendable> {
     @discardableResult
     public func focus(_ direction: TileDirection) -> Bool {
         let shape = gridShape
-        return mutate { $0.move(direction, shape: shape) } ?? false
+        let before = state
+        let moved = mutate { $0.move(direction, shape: shape) } ?? false
+        // Stack only: ↑ has no grid to return to.
+        return moved && state != before
     }
 
     /// Grid: focuses `tile` (the tvOS focus engine moved there, or a click).
@@ -162,7 +185,10 @@ public final class MultiViewSession<Item: Hashable & Sendable> {
 
     /// Pops the innermost layer. False when nothing is left; the host then leaves the player.
     public func back() -> Bool {
-        mutate { $0.back() } ?? false
+        let before = state
+        let popped = mutate { $0.back() } ?? false
+        // Stack only: the front tile has no grid to return to, so nothing was popped.
+        return popped && state != before
     }
 
     /// Asks `MultiViewPlayer` to give focus to the session's focused (or front) tile, for example when the host's
@@ -194,6 +220,9 @@ public final class MultiViewSession<Item: Hashable & Sendable> {
     func mutate<Result>(_ change: (inout MultiViewState) -> Result) -> Result? {
         guard var newState = state else { return nil }
         let result = change(&newState)
+        if showsStackOnly(tileCount: newState.tiles.count), case .grid(let focused) = newState.mode {
+            newState.show(.foreground(focused))
+        }
         if newState != state {
             state = newState
             stateChanged()
@@ -205,6 +234,12 @@ public final class MultiViewSession<Item: Hashable & Sendable> {
     func orderedTiles() -> [PlayerTile<Item>] {
         guard let state else { return tiles }
         return state.tiles.compactMap { id in tiles.first { $0.id == id } }
+    }
+
+    /// Brings the focused tile forward when the player became too small for the grid (a rotation, a resized
+    /// window, one more tile). A bigger player keeps the stack until the user returns to the grid.
+    func enforceStackOnly() {
+        mutate { _ in }
     }
 
     func stateChanged() {
