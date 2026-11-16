@@ -12,6 +12,7 @@
 		C0A5000000000000000000B3 /* EtagereKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0A5000000000000000000D3 /* EtagereKit */; };
 		C0A5000000000000000000B4 /* MediaSourceKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0A5000000000000000000D4 /* MediaSourceKit */; };
 		C0A5000000000000000000B5 /* PlayerKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0A5000000000000000000D5 /* PlayerKit */; };
+		C0A5000000000000000000B6 /* YouTubePlayerKit in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, ); productRef = C0A5000000000000000000D6 /* YouTubePlayerKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,6 +81,7 @@
 				C0A5000000000000000000B3 /* EtagereKit in Frameworks */,
 				C0A5000000000000000000B4 /* MediaSourceKit in Frameworks */,
 				C0A5000000000000000000B5 /* PlayerKit in Frameworks */,
+				C0A5000000000000000000B6 /* YouTubePlayerKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -154,6 +156,7 @@
 				C0A5000000000000000000D3 /* EtagereKit */,
 				C0A5000000000000000000D4 /* MediaSourceKit */,
 				C0A5000000000000000000D5 /* PlayerKit */,
+				C0A5000000000000000000D6 /* YouTubePlayerKit */,
 			);
 			productName = Consolation;
 			productReference = D32ED6FA2F8B8CAF00B6A9BA /* Consolation.app */;
@@ -243,6 +246,7 @@
 				C0A5000000000000000000E3 /* XCRemoteSwiftPackageReference "EtagereKit" */,
 				C0A5000000000000000000E4 /* XCLocalSwiftPackageReference "Packages/MediaSourceKit" */,
 				C0A5000000000000000000E5 /* XCLocalSwiftPackageReference "Packages/PlayerKit" */,
+				C0A5000000000000000000E6 /* XCRemoteSwiftPackageReference "YouTubePlayerKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D32ED6FB2F8B8CAF00B6A9BA /* Products */;
@@ -518,7 +522,6 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
@@ -736,6 +739,14 @@
 				minimumVersion = 0.1.0;
 			};
 		};
+		C0A5000000000000000000E6 /* XCRemoteSwiftPackageReference "YouTubePlayerKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SvenTiigi/YouTubePlayerKit";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 2.0.5;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -763,6 +774,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C0A5000000000000000000E5 /* XCLocalSwiftPackageReference "Packages/PlayerKit" */;
 			productName = PlayerKit;
+		};
+		C0A5000000000000000000D6 /* YouTubePlayerKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C0A5000000000000000000E6 /* XCRemoteSwiftPackageReference "YouTubePlayerKit" */;
+			productName = YouTubePlayerKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -31,6 +31,8 @@ final class AppModel {
     let lineups = LineupCache()
     let liveTV: LiveTVModel
     let session: PlayerSession
+    /// YouTube links: YouTube's own embed in Now Playing (Mac, iPad, iPhone), or the YouTube app (Apple TV).
+    let hostedVideos = HostedVideoPlayer()
     let nowPlayingInfo: NowPlayingInfoController
     /// The single owner of tuner connections; idle (no network) until a channel is played.
     let tunerBroker = TunerBroker(fetchStatus: TunerStatusReader.status(of:))
@@ -64,6 +66,9 @@ final class AppModel {
         }
         session.streamKinds = factory.streamKinds
         session.resumeRecorder = ResumeRecorder(store: resumePositions, history: history)
+        session.hostedVideos = hostedVideos
+        hostedVideos.stopsEngines = { [session] in session.stop() }
+        hostedVideos.recordsHistory = { [history] url in history.record(url) }
         nowPlayingInfo = NowPlayingInfoController(session: session)
     }
 
@@ -99,6 +104,7 @@ extension View {
             .environment(app.favorites)
             .environment(app.liveTV)
             .environment(app.session)
+            .environment(app.hostedVideos)
             .environment(app.registry)
             .environment(app.localNetwork)
             .environment(app.home)

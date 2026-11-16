@@ -91,18 +91,27 @@ struct LibraryFolderView: View {
 
     /// Adds the item as a multi-view tile (or plays it, if playback stopped meanwhile).
     private func addToMultiView(_ item: MediaItem) {
-        start(item) { media in await session.addToMultiView(.media(media)) }
+        start(item, asTile: true) { media in await session.addToMultiView(.media(media)) }
     }
 
-    /// Resolves the item through its server, hands it to `begin`, and opens the player.
-    private func start(_ item: MediaItem, begin: @escaping (SourceMedia) async -> Void) {
+    /// Resolves the item through its server, hands it to `begin`, and opens the player. A bookmark to a YouTube
+    /// video plays in YouTube's embed instead, and never as a multi-view tile.
+    private func start(_ item: MediaItem, asTile: Bool = false, begin: @escaping (SourceMedia) async -> Void) {
         playing = item.id
         Task {
             defer { playing = nil }
             do {
-                guard let media = try await registry.libraryMedia(for: item.id) else { return }
+                guard let playback = try await registry.libraryPlayback(for: item.id) else { return }
                 failure = nil
-                await begin(media)
+                switch playback {
+                case .media(let media):
+                    await begin(media)
+                case .hostedVideo where asTile && session.isActive:
+                    failure = PlayerSession.hostedVideoTileMessage
+                    return
+                case .hostedVideo:
+                    session.play(playback.target)
+                }
                 shell.selection = .nowPlaying
             } catch {
                 failure = Self.message(for: error, status: registry.status(of: location.source))

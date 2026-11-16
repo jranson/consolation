@@ -14,6 +14,7 @@ struct AppWindow: View {
     static let groupID = "main"
 
     @Environment(PlayerSession.self) private var session
+    @Environment(HostedVideoPlayer.self) private var hostedVideos
     /// The window's own pane, so a restored window (iPad, iPhone Duo) comes back where it was.
     @SceneStorage("shell.selection") private var savedSelection: String?
     @State private var shell: ShellModel
@@ -44,6 +45,7 @@ struct AppWindow: View {
             .onChange(of: shell.selection) { _, selection in savedSelection = selection.rawValue }
             .onDisappear {
                 session.windowClosed(shell.id)
+                hostedVideos.windowLeft(shell.id)
                 #if DEBUG && !os(tvOS)
                 DebugWindows.shells.removeAll { $0 === shell }
                 #endif

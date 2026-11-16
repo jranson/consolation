@@ -27,6 +27,8 @@ final class PlayerSession {
     let multiView: MultiViewSession<PlayingItem>
     /// Saves resume positions of on-demand playback for Continue Watching; nil saves none.
     @ObservationIgnored var resumeRecorder: ResumeRecorder?
+    /// Plays YouTube links in YouTube's own embed instead of an engine; nil plays every URL in an engine.
+    @ObservationIgnored var hostedVideos: HostedVideoPlayer?
 
     /// System Picture in Picture for the audible engine, where supported.
     var pictureInPicture: PictureInPicture?
@@ -157,6 +159,8 @@ final class PlayerSession {
     }
 
     func play(_ url: URL) {
+        // A YouTube link plays in YouTube's embed, which stops this player first.
+        if let hostedVideos, hostedVideos.play(url) { return }
         channelList = []
         guard let streamKinds, streamKinds.needsProbe(url) else { return start(.url(url)) }
         // "Opening…" shows while the stream's first bytes are read.
@@ -197,6 +201,8 @@ final class PlayerSession {
     /// Plays `newItem` in the target tile (the same tile, and so the same tuner slot: a flip closes the old stream
     /// before opening the new one), or alone when nothing plays.
     private func start(_ newItem: PlayingItem) {
+        // The embed and the engines never play at once.
+        hostedVideos?.stop()
         pauseReleaseTask?.cancel()
         resumeRecorder?.end()
         tunerReleased = false

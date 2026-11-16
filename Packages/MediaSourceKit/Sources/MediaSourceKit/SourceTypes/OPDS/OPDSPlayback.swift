@@ -31,6 +31,21 @@ public nonisolated enum OPDSPlayback {
         return (fitting.isEmpty ? candidates : fitting).min(by: ranksBefore)
     }
 
+    /// A video link to a hosting service's player (a bookmark to a YouTube video), for a publication with no
+    /// version an engine plays: the first of its links, or their alternates, whatever the relation, that
+    /// `HostedVideoLink` reads.
+    public static func hostedVideo(for publication: OPDSPublication, base: URL) -> HostedVideoLink? {
+        for link in publication.links.flatMap({ [$0] + $0.alternates }) {
+            if let url = link.url(relativeTo: base), let hosted = HostedVideoLink(url: url) { return hosted }
+        }
+        return nil
+    }
+
+    /// The descriptor for a hosted video: no engine plays it, so the host shows the service's embed.
+    public static func descriptor(for hosted: HostedVideoLink) -> PlaybackDescriptor {
+        PlaybackDescriptor(transport: .hostedVideo(hosted), start: .beginning)
+    }
+
     /// The descriptor for a choice. A recording in progress grows and starts at its beginning (Go Live is a seek).
     public static func descriptor(for choice: Choice, metadata: OPDSPublicationMetadata) -> PlaybackDescriptor {
         let transport: PlaybackDescriptor.Transport = switch choice.container {

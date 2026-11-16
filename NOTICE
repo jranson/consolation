@@ -16,6 +16,12 @@ libraries are dynamically linked, unmodified builds of the FFmpeg 9.0.2 release:
   build script:  scripts/build-ffmpeg.sh (`make ffmpeg` rebuilds the libraries)
   configuration: ThirdParty/FFmpeg/CONFIGURATION.txt (SHA-256 and configure lines)
 
+On macOS, iOS and iPadOS, this product includes YouTubePlayerKit
+(https://github.com/SvenTiigi/YouTubePlayerKit), Copyright (c) 2025 Sven Tiigi, licensed
+under the MIT License (LICENSES/MIT-YouTubePlayerKit.txt). It plays YouTube links in
+YouTube's own embedded player (the YouTube IFrame Player API). YouTube is a trademark of
+Google LLC. Centennial OSS is not affiliated with Google or YouTube.
+
 ---
 
 Licensed under the Apache License, Version 2.0 (the "License");

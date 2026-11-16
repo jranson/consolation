@@ -16,8 +16,10 @@ public nonisolated enum OPDSItems {
         if let identifier = publication.metadata.identifier, !identifier.isEmpty {
             return publicationPrefix + identifier
         }
-        guard let choice = OPDSPlayback.choice(for: publication, base: base) else { return nil }
-        let digest = SHA256.hash(data: Data(choice.url.absoluteString.utf8))
+        let playable = OPDSPlayback.choice(for: publication, base: base)?.url.absoluteString
+            ?? OPDSPlayback.hostedVideo(for: publication, base: base).map { "hosted:" + $0.videoID }
+        guard let playable else { return nil }
+        let digest = SHA256.hash(data: Data(playable.utf8))
         return MediaItemID.urlKeyPrefix + digest.map { String(format: "%02x", $0) }.joined()
     }
 
@@ -34,9 +36,10 @@ public nonisolated enum OPDSItems {
         guard let key = key(for: publication, base: base) else { return nil }
         let metadata = publication.metadata
         let choice = OPDSPlayback.choice(for: publication, base: base)
+        let isPlayable = choice != nil || OPDSPlayback.hostedVideo(for: publication, base: base) != nil
         let seconds = metadata.duration ?? choice?.link.duration
         return MediaItem(
-            id: MediaItemID(source: source, key: key), kind: kind(of: metadata, isPlayable: choice != nil),
+            id: MediaItemID(source: source, key: key), kind: kind(of: metadata, isPlayable: isPlayable),
             title: metadata.title.isEmpty ? (metadata.seriesName ?? "Untitled") : metadata.title,
             subtitle: metadata.subtitle ?? metadata.seriesName, synopsis: metadata.synopsis,
             artwork: artwork(publication.images, base: base, allowsImage: allowsImage),

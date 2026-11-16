@@ -98,6 +98,13 @@ final class HomeModel {
         case let .channel(channel, list): await session.addToMultiView(.channel(channel), channels: list)
         case .url(let url): await session.addToMultiView(.url(url))
         case .media(let media): await session.addToMultiView(.media(media))
+        case .hostedVideo:
+            // YouTube plays on its own: alone when nothing plays, never as a tile.
+            if session.isActive {
+                session.showNotice(PlayerSession.hostedVideoTileMessage)
+            } else {
+                session.play(target)
+            }
         }
         return true
     }

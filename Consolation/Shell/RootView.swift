@@ -14,6 +14,7 @@ import AppKit
 struct RootView: View {
     @Environment(ShellModel.self) var shell
     @Environment(PlayerSession.self) var session
+    @Environment(HostedVideoPlayer.self) var hostedVideos
     @Environment(QuickPlayHistory.self) private var history
     @Environment(LiveTVModel.self) var liveTV
     @Environment(\.scenePhase) var scenePhase
@@ -62,7 +63,7 @@ struct RootView: View {
         #endif
         // iPad and iPhone: Esc (hardware keyboard); iPad, iPhone and Mac: B (game controller) that Home's Etagere
         // didn't take. Back: the player returns to the last pane, and a pane moves focus to the pill.
-        .backInput(window: shell.id, handlesEscape: shell.selection != .nowPlaying) {
+        .backInput(window: shell.id, handlesEscape: shell.selection != .nowPlaying || hostedVideos.isActive) {
             if shell.selection == .nowPlaying {
                 shell.selection = shell.lastBrowsePane
             } else {
@@ -76,7 +77,14 @@ struct RootView: View {
                 session.showControlsBriefly()
             }
             if session.videoWindow == shell.id { session.isFullScreen = newValue == .nowPlaying }
+            // YouTube's embed plays only while its window shows it.
+            if newValue != .nowPlaying { hostedVideos.windowLeft(shell.id) }
         }
+        .onChange(of: shell.selection == .nowPlaying && hostedVideos.isActive && hostedVideos.window == nil,
+                  initial: true) { _, unclaimed in
+            if unclaimed { hostedVideos.claim(for: shell.id) }
+        }
+        .hostedVideoMessages(hostedVideos)
         .onChange(of: session.videoWindow) { _, window in
             if window == shell.id { session.isFullScreen = shell.selection == .nowPlaying }
         }
@@ -115,8 +123,10 @@ struct RootView: View {
     @ViewBuilder private func content(layout: ShellLayout) -> some View {
         @Bindable var shell = shell
         let inPlayer = shell.selection == .nowPlaying
+        // YouTube's embed is laid out like a pane: nothing of ours (the pill included) may cover it.
+        let showsEmbed = inPlayer && hostedVideos.isActive
         // The player and the Capture Card viewer fill the window; the pill floats over them.
-        let fillsWindow = inPlayer || shell.selection == .captureCard
+        let fillsWindow = (inPlayer && !showsEmbed) || shell.selection == .captureCard
         ZStack(alignment: layout == .compact ? .bottom : .leading) {
             pane
                 // tvOS: the pane is its own focus section.
@@ -135,7 +145,7 @@ struct RootView: View {
             PlayerSurfaceContainer(isMini: !inPlayer)
                 .disabled(isMenuOpen)
             // The player's chrome goes with the video; another window's Now Playing shows only where it plays.
-            if inPlayer, session.videoWindow == shell.id || !session.isActive {
+            if inPlayer, !showsEmbed, session.videoWindow == shell.id || !session.isActive {
                 NowPlayingChrome()
                     .disabled(isMenuOpen)
             }
@@ -145,7 +155,7 @@ struct RootView: View {
             if showsPill {
                 PillSidebar(items: shell.visibleItems, selection: $shell.selection,
                             axis: layout == .compact ? .horizontal : .vertical,
-                            badged: session.isActive ? [.nowPlaying] : [], focus: pillFocusBinding,
+                            badged: isPlaying ? [.nowPlaying] : [], focus: pillFocusBinding,
                             showsFocusRing: pillShowsFocusRing)
                     .pillKeyboardFocus()
                     .padding(layout == .compact ? .bottom : .leading, 12)
@@ -200,10 +210,21 @@ struct RootView: View {
         case .liveTV: LiveTVView()
         case .quickPlay: QuickPlayView()
         case .library: LibraryView()
-        case .nowPlaying: NowPlayingView()
+        case .nowPlaying: nowPlayingPane
         case .captureCard: captureCardPane
         case .settings: SettingsView()
         }
+    }
+
+    /// Something plays: the engine player or YouTube's embed.
+    var isPlaying: Bool { session.isActive || hostedVideos.isActive }
+
+    @ViewBuilder private var nowPlayingPane: some View {
+        #if os(tvOS)
+        NowPlayingView()
+        #else
+        if hostedVideos.isActive { HostedVideoPane() } else { NowPlayingView() }
+        #endif
     }
 
     @ViewBuilder private var captureCardPane: some View {

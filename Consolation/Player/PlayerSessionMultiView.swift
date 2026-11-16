@@ -9,6 +9,7 @@
 
 import CoreGraphics
 import Foundation
+import MediaSourceKit
 import PlaybackKit
 import PlayerKit
 #if os(macOS)
@@ -35,6 +36,7 @@ enum TilePickerRequest: Identifiable, Equatable {
 extension PlayerSession {
     static let noticeDuration: Duration = .seconds(4)
     static let protectedMessage = String(localized: "This channel is protected (DRM) and can't play on Apple devices.")
+    static let hostedVideoTileMessage = String(localized: "YouTube videos play on their own, not in multi-view.")
 
     /// "All tuners in use" (805): the tile shows Tuner Unavailable with Retry instead of a failure.
     nonisolated static func isTunerUnavailable(_ error: PlaybackError) -> Bool {
@@ -54,6 +56,10 @@ extension PlayerSession {
     /// Adds `item` as a tile, or plays it when nothing plays. Returns why it couldn't be added, or nil.
     @discardableResult
     func addToMultiView(_ item: PlayingItem, channels: [LiveChannel] = []) async -> String? {
+        if isActive, case .url(let url) = item, HostedVideoLink.recognizes(url) {
+            showNotice(Self.hostedVideoTileMessage)
+            return Self.hostedVideoTileMessage
+        }
         guard isActive else {
             switch item {
             case .channel(let channel): play(channel, within: channels)

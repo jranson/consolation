@@ -45,7 +45,7 @@ struct QuickPlayView: View {
 
     private var entryRow: some View {
         HStack(spacing: 12) {
-            TextField("Stream URL (HLS, DASH, MP4 or MPEG-TS)", text: $urlText)
+            TextField("Stream or YouTube URL (HLS, DASH, MP4, MKV or MPEG-TS)", text: $urlText)
                 #if !os(tvOS)
                 .textFieldStyle(.roundedBorder)
                 #endif

@@ -23,6 +23,9 @@ public nonisolated struct PlaybackDescriptor: Sendable, CustomStringConvertible,
         case bytes(any ByteRangeSource)
         case hls(URL, headers: [String: String])
         case dash(URL)
+        /// A video that plays only in its hosting service's own embedded player (a Bullpen bookmark to YouTube).
+        /// No engine plays it, so `PlaybackInputMapper` refuses it; the host shows the embed instead.
+        case hostedVideo(HostedVideoLink)
 
         /// Redacted: scheme and host only, header names without values.
         public var description: String {
@@ -33,6 +36,7 @@ public nonisolated struct PlaybackDescriptor: Sendable, CustomStringConvertible,
             case .bytes: "bytes"
             case .hls(let url, let headers): "hls(\(Self.redacted(url))\(Self.headerNames(headers)))"
             case .dash(let url): "dash(\(Self.redacted(url)))"
+            case .hostedVideo: "hostedVideo"
             }
         }
 

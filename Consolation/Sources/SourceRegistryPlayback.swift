@@ -19,6 +19,21 @@ enum PlaybackTarget: Equatable {
     case url(URL)
     /// A library source's item (a recording, a movie, a server's channel), mapped to an engine input.
     case media(SourceMedia)
+    /// A video that plays in its service's own embed (a Bullpen bookmark to YouTube).
+    case hostedVideo(HostedVideo)
+}
+
+/// What a library source's item plays in: an engine, or its service's embed.
+enum LibraryPlayback {
+    case media(SourceMedia)
+    case hostedVideo(HostedVideo)
+
+    var target: PlaybackTarget {
+        switch self {
+        case .media(let media): .media(media)
+        case .hostedVideo(let video): .hostedVideo(video)
+        }
+    }
 }
 
 extension SourceRegistry {
@@ -33,18 +48,22 @@ extension SourceRegistry {
             return .channel(channel, within: channels)
         }
         if let url = quickPlayURL(for: id) { return .url(url) }
-        if let media = try? await libraryMedia(for: id) { return .media(media) }
+        if let playback = try? await libraryPlayback(for: id) { return playback.target }
         return nil
     }
 
-    /// A library source's item, ready to play. Throws the source's error, or the mapper's when no engine plays it.
-    func libraryMedia(for id: MediaItemID, start: StartPosition? = nil) async throws -> SourceMedia? {
+    /// A library source's item, ready to play: mapped to an engine input, or, for a hosted video (a bookmark to
+    /// YouTube), the embed's video. Throws the source's error, or the mapper's when no engine plays it.
+    func libraryPlayback(for id: MediaItemID, start: StartPosition? = nil) async throws -> LibraryPlayback? {
         guard let source = librarySource(id.source) else { return nil }
         let item = try await source.item(id)
         let descriptor = try await source.playback(for: id, request: PlaybackRequest(start: start))
+        if case .hostedVideo(let link) = descriptor.transport {
+            return .hostedVideo(HostedVideo(link: link, title: item.title))
+        }
         let input = try PlaybackInputMapper.input(for: descriptor)
-        return SourceMedia(item: id, title: item.title, subtitle: item.subtitle, isLive: descriptor.isLive,
-                           input: input)
+        return .media(SourceMedia(item: id, title: item.title, subtitle: item.subtitle, isLive: descriptor.isLive,
+                                  input: input))
     }
 
     /// The URL behind a Quick Play item, from the history (the item itself never holds it).
@@ -107,6 +126,7 @@ extension PlayerSession {
         case let .channel(channel, list): play(channel, within: list)
         case .url(let url): play(url)
         case .media(let media): play(media)
+        case .hostedVideo(let video): hostedVideos?.play(video)
         }
     }
 }

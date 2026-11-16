@@ -8,6 +8,8 @@ import Foundation
 ///   following `next` pages as far as a page request reaches.
 /// - Live channels are `ch:<identifier>` (`ch:bullpen:ch/antenna-9-1`) and play the proxy's HLS stream. Recordings
 ///   play their acquisition link; one still being written grows and starts at its beginning.
+/// - Bookmarks: a publication whose only video is a link to a hosting service (a YouTube video) plays as a
+///   `.hostedVideo` descriptor, which the host shows in that service's embedded player.
 /// - Read-only. It connects only to the server's own origin: artwork on other hosts is left out, so cards draw
 ///   their own faces. Sign-in (an `oidc-issuer` in the catalog) isn't built yet; such a server reports
 ///   `authRequired`.
@@ -110,6 +112,10 @@ public actor BullpenSource: LibraryServerSource {
             throw MediaSourceError.notFound(itemID)
         }
         guard let choice = OPDSPlayback.choice(for: publication, base: base) else {
+            // A bookmark to a hosted video (YouTube) plays in the service's own embed, which the host shows.
+            if let hosted = OPDSPlayback.hostedVideo(for: publication, base: base) {
+                return OPDSPlayback.descriptor(for: hosted)
+            }
             throw MediaSourceError.notPlayable(itemID)
         }
         var descriptor = OPDSPlayback.descriptor(for: choice, metadata: publication.metadata)

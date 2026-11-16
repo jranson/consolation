@@ -3,7 +3,8 @@
 //  Consolation
 //
 //  Version, links, and the credit and licence for the software decoder library (LGPL-2.1 §6: the notice, the
-//  licence text and where to get the library's source).
+//  licence text and where to get the library's source), and, where it ships (not Apple TV), YouTubePlayerKit's MIT
+//  notice.
 //
 
 import PlaybackKit
@@ -11,6 +12,7 @@ import SwiftUI
 
 struct AboutSettingsSection: View {
     @State private var showsLicense = false
+    @State private var showsEmbedLicense = false
 
     var body: some View {
         Section {
@@ -33,12 +35,26 @@ struct AboutSettingsSection: View {
                 .foregroundStyle(.secondary)
             Link("FFmpeg Source Code", destination: SoftwareDecoderLibrary.sourceURL)
             Button("GNU Lesser General Public License 2.1") { showsLicense = true }
+            #if !os(tvOS)
+            Text("""
+                YouTube links play in YouTube's own embedded player through YouTubePlayerKit by Sven Tiigi, \
+                licensed under the MIT License. YouTube is a trademark of Google LLC.
+                """)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            Button("YouTubePlayerKit License (MIT)") { showsEmbedLicense = true }
+            #endif
         } header: {
             Text("Acknowledgements")
         }
         .sheet(isPresented: $showsLicense) {
             LicenseTextView(title: "LGPL 2.1", text: SoftwareDecoderLibrary.licenseText ?? "")
         }
+        #if !os(tvOS)
+        .sheet(isPresented: $showsEmbedLicense) {
+            LicenseTextView(title: "YouTubePlayerKit (MIT)", text: YouTubeEmbedClient.licenseText)
+        }
+        #endif
     }
 }
 

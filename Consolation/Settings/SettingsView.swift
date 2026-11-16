@@ -61,7 +61,8 @@ struct SettingsView: View {
                 Text("""
                     \(AppIdentifier.name) makes no network connections until you add a source or play a URL, and \
                     then connects \
-                    only to the tuners, servers and URLs you choose. No analytics, no tracking.
+                    only to the tuners, servers and URLs you choose. No analytics, no tracking. A YouTube link plays \
+                    in YouTube's own player, which connects to Google.
                     """)
                     .font(.callout)
                     .foregroundStyle(.secondary)

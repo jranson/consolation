@@ -14,6 +14,7 @@ import PlaybackKit
 /// | `.http` or `.file`, MKV | `.matroska`, read like MPEG-TS (range requests or the file), seekable with its Cues |
 /// | `.hls`, `.dash` | `.avPlayer(.hls)`, `.avPlayer(.dash)` |
 /// | `.http` or `.file`, MP4/MOV or unknown | `.avPlayer(.file)` |
+/// | `.hostedVideo` | throws `.hostedVideo`: the host plays it in the service's embedded player |
 ///
 /// Request headers (a server's token) go with every request of either engine. They are refused for plain http to a
 /// host outside the local network, so a secret never crosses the internet unencrypted.
@@ -42,6 +43,8 @@ public nonisolated enum PlaybackInputMapper {
             return .avPlayer(AVPlayerInput(url: url, kind: .hls, headers: headers, startsAtBeginning: fromBeginning))
         case .dash(let url):
             return .avPlayer(AVPlayerInput(url: url, kind: .dash, startsAtBeginning: fromBeginning))
+        case .hostedVideo:
+            throw .hostedVideo
         }
     }
 
@@ -135,6 +138,8 @@ public nonisolated enum PlaybackMappingError: Error, Hashable, Sendable {
     case startPosition(StartPosition)
     /// No engine plays this container.
     case container(ContainerHint)
+    /// The video plays only in its hosting service's embedded player, never in an engine.
+    case hostedVideo
 
     /// A user-presentable error for the player's failure state.
     public var playbackError: PlaybackError {
@@ -149,6 +154,7 @@ public nonisolated enum PlaybackMappingError: Error, Hashable, Sendable {
         case .programSelection: "This channel can't be played while it shares a tuner."
         case .startPosition: "Resuming isn't supported for this video yet."
         case .container: "This video format isn't supported."
+        case .hostedVideo: "This video plays only in its own service's player."
         }
     }
 }
