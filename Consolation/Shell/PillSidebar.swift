@@ -28,6 +28,8 @@ struct PillSidebar<Item: PillItem>: View {
 
     let items: [Item]
     @Binding var selection: Item
+    /// Each item's name (the host may vary it, e.g. a plural).
+    var title: (Item) -> LocalizedStringResource = \.title
     var axis: Axis = .vertical
     var badged: Set<Item> = []
     /// tvOS: which pill item has focus (the host moves focus here on Back). Selection follows focus.
@@ -91,7 +93,7 @@ struct PillSidebar<Item: PillItem>: View {
                     .font(.system(size: shellLayout.pillIconSize, weight: .medium))
                     .frame(width: shellLayout.pillButtonSize, height: shellLayout.pillButtonSize)
                 if showsTitles {
-                    Text(item.title)
+                    Text(title(item))
                         .font(.headline)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
@@ -123,8 +125,8 @@ struct PillSidebar<Item: PillItem>: View {
         .buttonStyle(.plain)
         .modifier(PillFocus(focus: focus, item: item))
         .accessibilityIdentifier("pill.\(String(describing: item.id))")
-        .help(Text(item.title))
-        .accessibilityLabel(Text(item.title))
+        .help(Text(title(item)))
+        .accessibilityLabel(Text(title(item)))
         .accessibilityAddTraits(selection == item ? .isSelected : [])
     }
 }

@@ -2,7 +2,8 @@
 //  PillSettings.swift
 //  Consolation
 //
-//  The sidebar items the user hid in Settings: one setting for the whole app, shared by every window's shell.
+//  The sidebar items the user hid in Settings, and what the panes have to show (`ShellContent`): one setting for the
+//  whole app, shared by every window's shell.
 //
 
 import Foundation
@@ -19,15 +20,22 @@ final class PillSettings {
         didSet { defaults.set(hiddenItems.map(\.rawValue).sorted(), forKey: Self.hiddenKey) }
     }
 
+    /// Reads what the panes have to show from the app's models (`AppModel` attaches it). Reading it inside a view or
+    /// an observation tracks those models, so the menu follows tuners and servers being added and playback.
+    @ObservationIgnored var readContent: () -> ShellContent = { .everything }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let hidden = (defaults.stringArray(forKey: Self.hiddenKey) ?? []).compactMap(ShellItem.init(rawValue:))
         hiddenItems = Set(hidden.filter(\.isHideable))
     }
 
-    /// The items the pill shows, in order.
+    var content: ShellContent { readContent() }
+
+    /// The items the pill shows, in order: those this device has, not hidden, and with something to show.
     var visibleItems: [ShellItem] {
-        ShellItem.availableCases.filter { !hiddenItems.contains($0) }
+        let content = content
+        return ShellItem.availableCases.filter { !hiddenItems.contains($0) && content.hasContent($0) }
     }
 
     func setHidden(_ item: ShellItem, _ hidden: Bool) {

@@ -8,6 +8,9 @@
 //
 
 import SwiftUI
+#if os(tvOS)
+import UIKit
+#endif
 
 extension RootView {
     /// Apple TV uses the collapsible menu instead of the pill.
@@ -32,7 +35,8 @@ extension RootView {
 
 #if os(tvOS)
 extension RootView {
-    /// The collapsed header in a pane (nothing in the player), or the open menu over the dimmed content.
+    /// The collapsed header in a pane (nothing in the player), or the open menu over the dimmed content with the time
+    /// in the upper right.
     @ViewBuilder func televisionMenu(inPlayer: Bool) -> some View {
         ZStack(alignment: .topLeading) {
             if isMenuOpen {
@@ -40,7 +44,7 @@ extension RootView {
                     .ignoresSafeArea()
                     .allowsHitTesting(false)
                     .transition(.opacity)
-                TVMenu(items: shell.visibleItems, selection: shell.selection,
+                TVMenu(items: shell.visibleItems, selection: shell.selection, title: shell.title(for:),
                        badged: session.isActive ? [.nowPlaying] : [], focus: $pillFocus, onChoose: choose)
                     .padding(.leading, Self.tvPillInset)
                     .focusSection()
@@ -49,14 +53,18 @@ extension RootView {
                     }
                     // Appears with a fade, but leaves at once: see `menuClosing`.
                     .transition(.asymmetric(insertion: .opacity, removal: .identity))
+                TVMenuClock()
+                    .padding(.trailing, Self.tvPillInset)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .transition(.asymmetric(insertion: .opacity, removal: .identity))
             } else if !inPlayer {
-                TVMenuHeader(selection: shell.selection)
+                TVMenuHeader(selection: shell.selection, title: shell.title(for: shell.selection))
                     .padding(.leading, Self.tvPillInset)
                     .transition(.opacity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .ignoresSafeArea(.container, edges: .leading)
+        .ignoresSafeArea(.container, edges: .horizontal)
         .animation(.smooth(duration: 0.25), value: isMenuOpen)
     }
 
@@ -75,6 +83,7 @@ extension RootView {
             // The new pane takes focus once it is on screen.
             try? await Task.sleep(for: .milliseconds(150))
             shell.focusContent()
+            await openMenuIfFocusIsLost()
         }
     }
 
@@ -94,12 +103,30 @@ extension RootView {
         shell.focusPill()
     }
 
+    /// The safety net under `paneTakesFocus`: once focus has had time to settle, if nothing in the app has it (a
+    /// pane showing nothing to select), opens the menu. With nothing focused, Back would leave the app, and coming
+    /// back would land on the same screen, with no way out.
+    func openMenuIfFocusIsLost() async {
+        try? await Task.sleep(for: .milliseconds(600))
+        guard !Task.isCancelled, scenePhase == .active, !isMenuOpen, !Self.appHasFocus else { return }
+        shell.focusPill()
+    }
+
+    /// Whether any of the app's windows has a focused item.
+    private static var appHasFocus: Bool {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .contains { UIFocusSystem.focusSystem(for: $0)?.focusedItem != nil }
+    }
+
     /// At launch focus goes into the restored pane, or into the menu when the pane has nothing to focus.
     func focusAtLaunch() async {
         try? await Task.sleep(for: .milliseconds(400))
         guard !Task.isCancelled, !isMenuOpen else { return }
         if paneTakesFocus(shell.selection) {
             shell.focusContent()
+            await openMenuIfFocusIsLost()
         } else {
             shell.focusPill()
         }

@@ -14,6 +14,7 @@ import SwiftUI
 /// The collapsed menu: where you are, never focusable.
 struct TVMenuHeader<Item: PillItem>: View {
     let selection: Item
+    var title: LocalizedStringResource?
 
     var body: some View {
         HStack(spacing: 10) {
@@ -21,7 +22,7 @@ struct TVMenuHeader<Item: PillItem>: View {
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(.secondary)
             Label {
-                Text(selection.title).font(.body.weight(.semibold))
+                Text(title ?? selection.title).font(.body.weight(.semibold))
             } icon: {
                 Image(systemName: selection.systemImage)
             }
@@ -35,10 +36,13 @@ struct TVMenuHeader<Item: PillItem>: View {
     }
 }
 
-/// The open menu: the app's name and the time, then every visible item; the current one has focus when it opens.
+/// The open menu: the app's name, then every visible item; the current one has focus when it opens. The time shows
+/// beside it, in the upper right (`TVMenuClock`).
 struct TVMenu<Item: PillItem>: View {
     let items: [Item]
     let selection: Item
+    /// Each item's name (the host may vary it, e.g. a plural).
+    var title: (Item) -> LocalizedStringResource = \.title
     var badged: Set<Item> = []
     let focus: FocusState<Item?>.Binding
     /// Select on an item: the host switches to it and closes the menu.
@@ -48,21 +52,19 @@ struct TVMenu<Item: PillItem>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(AppIdentifier.name).font(.callout.weight(.semibold))
-                Spacer()
-                TimelineView(.everyMinute) { context in
-                    Text(context.date, style: .time).font(.callout).foregroundStyle(.secondary)
-                }
-            }
-            .padding(.horizontal, 22)
+            Text(AppIdentifier.name)
+                .font(.callout.weight(.semibold))
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 22)
             .padding(.top, 6)
             .padding(.bottom, 12)
             ForEach(items) { item in
                 Button {
                     onChoose(item)
                 } label: {
-                    TVMenuRow(item: item, isSelected: item == selection, isBadged: badged.contains(item))
+                    TVMenuRow(item: item, title: title(item), isSelected: item == selection,
+                              isBadged: badged.contains(item))
                 }
                 .buttonStyle(TVMenuItemStyle())
                 .focusEffectDisabled()
@@ -77,8 +79,27 @@ struct TVMenu<Item: PillItem>: View {
     }
 }
 
+/// The time, in a Liquid Glass capsule in the upper right while the menu is open. Never focusable.
+struct TVMenuClock: View {
+    var body: some View {
+        TimelineView(.everyMinute) { context in
+            Text(context.date, style: .time)
+                .font(.callout.weight(.semibold))
+                .monospacedDigit()
+                .lineLimit(1)
+                .fixedSize()
+                .padding(.horizontal, 22)
+                .padding(.vertical, 12)
+                .glassEffect(.regular, in: .capsule)
+                .accessibilityIdentifier("menu.clock")
+        }
+        .allowsHitTesting(false)
+    }
+}
+
 private struct TVMenuRow<Item: PillItem>: View {
     let item: Item
+    let title: LocalizedStringResource
     let isSelected: Bool
     let isBadged: Bool
 
@@ -88,7 +109,7 @@ private struct TVMenuRow<Item: PillItem>: View {
             Image(systemName: item.systemImage)
                 .font(.system(size: 24, weight: .medium))
                 .frame(width: 34)
-            Text(item.title)
+            Text(title)
                 .font(.body.weight(isSelected ? .semibold : .regular))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)

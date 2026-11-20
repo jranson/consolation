@@ -29,9 +29,9 @@ struct ShellCommands: Commands {
         CommandMenu("Go") {
             ForEach(ShellItem.availableCases.filter { $0 != .settings }) { item in
                 if let key = item.shortcutKey {
-                    Button { shell?.selection = item } label: { Text(item.title) }
+                    Button { shell?.selection = item } label: { Text(shell?.title(for: item) ?? item.title) }
                         .keyboardShortcut(key, modifiers: .command)
-                        .disabled(shell?.hiddenItems.contains(item) ?? true)
+                        .disabled(!(shell?.visibleItems.contains(item) ?? false))
                 }
             }
         }

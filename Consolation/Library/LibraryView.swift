@@ -58,7 +58,9 @@ struct LibraryView: View {
                     .labelStyle(.iconOnly)
             }
             #endif
-            Text(path.last?.title ?? String(localized: "Library")).font(.largeTitle.bold()).lineLimit(1)
+            Text(path.last?.title ?? String(localized: shell.title(for: .library)))
+                .font(.largeTitle.bold())
+                .lineLimit(1)
         }
     }
 

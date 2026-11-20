@@ -102,12 +102,25 @@ final class ShellModel {
         self.settings = settings
         self.defaults = defaults
         let saved = defaults.string(forKey: Self.selectionKey).flatMap(ShellItem.init(rawValue:)) ?? .home
-        selection = Self.restorable(saved, hidden: settings.hiddenItems)
+        selection = Self.restorable(saved, hidden: settings.hiddenItems, content: settings.content)
         lastBrowsePane = selection
     }
 
-    /// The items the pill shows, in order.
+    /// The items the pill shows, in order: not hidden, and with something to show (`ShellContent`).
     var visibleItems: [ShellItem] { settings.visibleItems }
+
+    /// An item's name in the menu ("Libraries" with more than one library server).
+    func title(for item: ShellItem) -> LocalizedStringResource {
+        settings.content.title(for: item)
+    }
+
+    /// The selected pane left the menu (hidden in Settings, its last source removed, playback ended): Now Playing
+    /// returns to the last pane, anything else goes Home.
+    func leaveSelectionIfNotVisible() {
+        let items = visibleItems
+        guard !items.contains(selection) else { return }
+        selection = selection == .nowPlaying && items.contains(lastBrowsePane) ? lastBrowsePane : .home
+    }
 
     func setHidden(_ item: ShellItem, _ hidden: Bool) {
         settings.setHidden(item, hidden)
@@ -116,13 +129,16 @@ final class ShellModel {
     /// Restores a window's own saved pane (iPad and iPhone Duo bring windows back with their state).
     func restore(_ rawValue: String?) {
         guard let item = rawValue.flatMap(ShellItem.init(rawValue:)) else { return }
-        selection = Self.restorable(item, hidden: hiddenItems)
+        selection = Self.restorable(item, hidden: hiddenItems, content: settings.content)
     }
 
-    /// Now Playing is never restored (nothing plays at launch), and a hidden item, or one this device doesn't have,
-    /// falls back to Home.
-    static func restorable(_ item: ShellItem, hidden: Set<ShellItem>) -> ShellItem {
-        if item == .nowPlaying || hidden.contains(item) || !item.isAvailable { return .home }
+    /// Now Playing is never restored (nothing plays at launch), and a hidden item, one this device doesn't have, or
+    /// one with nothing to show (Live TV without a tuner), falls back to Home.
+    static func restorable(_ item: ShellItem, hidden: Set<ShellItem>,
+                           content: ShellContent = .everything) -> ShellItem {
+        if item == .nowPlaying || hidden.contains(item) || !item.isAvailable || !content.hasContent(item) {
+            return .home
+        }
         return item
     }
 }

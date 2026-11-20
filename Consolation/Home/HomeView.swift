@@ -107,7 +107,7 @@ struct HomeView: View {
         case .settings(let section):
             shell.openSettings(section)
         case .pane(let item):
-            if shell.hiddenItems.contains(item) {
+            if !shell.visibleItems.contains(item) {
                 shell.openSettings(.sources)
             } else {
                 shell.selection = item

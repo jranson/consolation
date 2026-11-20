@@ -70,6 +70,11 @@ final class AppModel {
         hostedVideos.stopsEngines = { [session] in session.stop() }
         hostedVideos.recordsHistory = { [history] url in history.record(url) }
         nowPlayingInfo = NowPlayingInfoController(session: session)
+        pillSettings.readContent = { [sources, session, hostedVideos] in
+            ShellContent(tunerCount: sources.hdHomeRuns.count,
+                         libraryCount: sources.bullpens.count + sources.plexServers.count,
+                         isPlaying: session.isActive || hostedVideos.isActive)
+        }
     }
 
     /// Settings › Multi-view's tuner rules, for the broker (at launch and whenever they change).

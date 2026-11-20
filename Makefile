@@ -39,7 +39,7 @@ endif
 # name, the newest runtime's device is used. Simulators have no capture devices, so Capture Card checks layout only.
 SIM_IPHONE ?= iPhone 17
 SIM_IPAD ?= iPad Pro 11-inch (M5)
-SIM_TV ?= Apple TV 4K (3rd generation) (at 1080p)
+SIM_TV ?= Apple TV 4K (4th generation) (at 1080p)
 IOS_SIM_APP := build/$(APP_NAME)-iOS.app
 TVOS_SIM_APP := build/$(APP_NAME)-tvOS.app
 

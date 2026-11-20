@@ -14,6 +14,22 @@ import XCTest
 final class TVFocusTests: TVRemoteTestCase {
     private var header: XCUIElement { menuHeader }
 
+    /// The menu's items, top to bottom: Live TV and Library only with a tuner or library server added (this
+    /// simulator's own sources), Now Playing only while something plays.
+    private var menuOrder: [String] {
+        ["pill.home", "pill.liveTV", "pill.quickPlay", "pill.library", "pill.nowPlaying", "pill.settings"]
+            .filter { app.buttons[$0].exists }
+    }
+
+    /// Moves down the open menu from Home to `item`.
+    private func moveDown(to item: String, line: UInt = #line) {
+        guard let index = menuOrder.firstIndex(of: item) else {
+            return XCTFail("\(item) isn't in the menu (\(menuOrder))", line: line)
+        }
+        press(.down, times: index)
+        assertFocus(item, "on \(item)", line: line)
+    }
+
     /// Opens the menu with Back and checks it opened on `item`.
     private func openMenu(on item: String, line: UInt = #line) {
         press(.menu)
@@ -31,7 +47,7 @@ final class TVFocusTests: TVRemoteTestCase {
 
     func testUpAndDownMoveInTheMenuAndLeftAndRightStay() {
         openMenu(on: "home")
-        let order = ["pill.home", "pill.liveTV", "pill.quickPlay", "pill.library", "pill.nowPlaying", "pill.settings"]
+        let order = menuOrder
         for expected in order.dropFirst() {
             press(.down)
             assertFocus(expected, "moving down the menu")
@@ -49,8 +65,7 @@ final class TVFocusTests: TVRemoteTestCase {
 
     func testSelectSwitchesPaneAndCollapsesTheMenu() {
         openMenu(on: "home")
-        press(.down, times: 5)
-        assertFocus("pill.settings", "on Settings")
+        moveDown(to: "pill.settings")
         press(.select)
         XCTAssertTrue(app.buttons["pill.settings"].waitForNonExistence(timeout: 3), "the menu collapses")
         XCTAssertEqual(header.label.contains("Settings"), true, "the header shows Settings (\(header.label))")
@@ -64,33 +79,27 @@ final class TVFocusTests: TVRemoteTestCase {
         assertLeftTheApp("Back in the open menu leaves the app")
     }
 
-    /// Now Playing with nothing playing has nothing to focus, so choosing it keeps the menu open.
-    func testChoosingAPaneWithNothingToFocusKeepsTheMenuOpen() {
+    /// With nothing playing the menu has no Now Playing item.
+    func testNowPlayingIsNotInTheMenuWithNothingPlaying() {
         openMenu(on: "home")
-        press(.down, times: 4)
-        press(.select)
-        XCTAssertTrue(app.buttons["pill.nowPlaying"].isSelected, "Now Playing is selected")
-        assertFocus("pill.nowPlaying", "the menu stays open with focus on Now Playing")
+        XCTAssertFalse(app.buttons["pill.nowPlaying"].exists, "Now Playing is hidden (\(menuOrder))")
     }
 
-    /// Leaving the app on Now Playing with nothing playing, then coming back, used to leave focus nowhere, so the menu
-    /// couldn't be opened. Coming back opens the menu there.
-    func testComingBackToAnEmptyNowPlayingOpensTheMenu() {
+    /// The time shows in the upper right only while the menu is open.
+    func testTheMenuShowsTheTimeWhileOpen() {
+        let clock = app.descendants(matching: .any)["menu.clock"]
+        XCTAssertFalse(clock.exists, "no time with the menu collapsed")
         openMenu(on: "home")
-        press(.down, times: 4)
+        XCTAssertTrue(clock.waitForExistence(timeout: 3), "the open menu shows the time")
+        XCTAssertGreaterThan(clock.frame.minX, app.frame.midX, "the time is on the right")
+        moveDown(to: "pill.settings")
         press(.select)
-        assertFocus("pill.nowPlaying", "Now Playing is chosen, with the menu still open")
-        press(.menu)
-        assertLeftTheApp("Back in the open menu leaves the app")
-        app.activate()
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5), "the app is back")
-        XCTAssertTrue(waitForPillFocus(timeout: 5), "the menu opens (focused: \(focusedLabels))")
-        assertFocus("pill.nowPlaying", "on Now Playing")
+        XCTAssertTrue(clock.waitForNonExistence(timeout: 3), "the time goes with the menu")
     }
 
     func testQuickPlayTakesFocusWhenChosen() {
         openMenu(on: "home")
-        press(.down, times: 2)
+        moveDown(to: "pill.quickPlay")
         press(.select)
         XCTAssertTrue(app.buttons["pill.quickPlay"].waitForNonExistence(timeout: 3), "the menu collapses")
         XCTAssertFalse(focusedIsInPill, "Quick Play takes focus (focused: \(focusedLabels))")

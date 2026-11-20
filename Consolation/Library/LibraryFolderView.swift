@@ -30,6 +30,7 @@ struct LibraryFolderView: View {
             if let items {
                 if items.isEmpty {
                     Text("Nothing here yet.").foregroundStyle(.secondary)
+                        .holdsFocusForBack()
                 } else {
                     List(items) { item in
                         LibraryItemRow(item: item, isStarting: playing == item.id) { select(item) }
@@ -39,6 +40,7 @@ struct LibraryFolderView: View {
                 }
             } else if failure == nil {
                 ProgressView()
+                    .holdsFocusForBack()
             }
             if let failure {
                 VStack(alignment: .leading, spacing: 12) {
@@ -129,6 +131,19 @@ struct LibraryFolderView: View {
         }
         if case MediaSourceError.notFound = error { return String(localized: "This isn't on the server any more.") }
         return String(localized: "Couldn't read this from the server.")
+    }
+}
+
+private extension View {
+    /// Apple TV: a folder with nothing to select (empty, or still loading) keeps focus here, so Back reaches the
+    /// Library pane and closes the folder. With nothing focused, Back would go to the system and leave the app.
+    @ViewBuilder
+    func holdsFocusForBack() -> some View {
+        #if os(tvOS)
+        focusable().accessibilityIdentifier("library.placeholder")
+        #else
+        self
+        #endif
     }
 }
 

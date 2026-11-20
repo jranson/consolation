@@ -57,7 +57,9 @@ struct RootView: View {
         // focus (Now Playing with nothing playing) opens the menu: with focus nowhere, Back would leave the app and the
         // menu couldn't be reached.
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { openMenuIfStranded() }
+            guard phase == .active else { return }
+            openMenuIfStranded()
+            Task { await openMenuIfFocusIsLost() }
         }
         .onChange(of: session.isActive) { openMenuIfStranded() }
         #endif
@@ -88,10 +90,12 @@ struct RootView: View {
         .onChange(of: session.videoWindow) { _, window in
             if window == shell.id { session.isFullScreen = shell.selection == .nowPlaying }
         }
-        // Hiding the pane on screen (in this window's Settings or another's) goes Home.
-        .onChange(of: shell.hiddenItems) { _, hidden in
-            if hidden.contains(shell.selection) { shell.selection = .home }
-        }
+        // The pane on screen leaving the menu (hidden in this window's Settings or another's, its last source
+        // removed, playback ending in Now Playing) goes back to the last pane or Home.
+        .onChange(of: shell.visibleItems) { shell.leaveSelectionIfNotVisible() }
+        // Only a listed pane can be on screen: Apple TV hands YouTube to its own app, so Quick Play's "play" would
+        // otherwise leave an empty Now Playing behind.
+        .onChange(of: shell.selection) { shell.leaveSelectionIfNotVisible() }
         #if !os(tvOS)
         .onPreferenceChange(CaptureChromeHiddenKey.self) { hidden in
             Task { @MainActor in shell.captureChromeHidden = hidden }
@@ -153,7 +157,7 @@ struct RootView: View {
             televisionMenu(inPlayer: inPlayer)
             #else
             if showsPill {
-                PillSidebar(items: shell.visibleItems, selection: $shell.selection,
+                PillSidebar(items: shell.visibleItems, selection: $shell.selection, title: shell.title(for:),
                             axis: layout == .compact ? .horizontal : .vertical,
                             badged: isPlaying ? [.nowPlaying] : [], focus: pillFocusBinding,
                             showsFocusRing: pillShowsFocusRing)
