@@ -35,6 +35,27 @@ final class TVTimelineTests: TVRemoteTestCase {
         XCTAssertGreaterThanOrEqual(after, pending - 2, "Select moved playback to the dot (\(before) → \(after))")
     }
 
+    /// Left and right on the video jump 10 s; a run adds up in the upper-right pill, which goes 3 s after the last.
+    func testLeftAndRightJumpAndThePillAddsUp() throws {
+        guard let url = ProcessInfo.processInfo.environment["CONSOLATION_UI_NETWORK_URL"] else {
+            throw XCTSkip("set CONSOLATION_UI_NETWORK_URL to an on-demand stream")
+        }
+        launch(["-ConsolationPane", "home", "-ConsolationPlayURL", url], waitsForPill: false)
+        XCTAssertTrue(app.buttons["player.video"].waitForExistence(timeout: 10), "the player opens")
+        Thread.sleep(forTimeInterval: 30)
+        let pill = app.descendants(matching: .any)["player.jump"]
+        remote.press(.right)
+        XCTAssertTrue(pill.waitForExistence(timeout: 2), "right shows the jump pill")
+        XCTAssertEqual(pill.label, "+10s")
+        remote.press(.right)
+        remote.press(.right)
+        remote.press(.left)
+        Thread.sleep(forTimeInterval: 0.5)
+        XCTAssertEqual(pill.label, "+20s", "a run adds up")
+        XCTAssertFalse(app.buttons["player.playPause"].exists, "jumping doesn't bring up the controls")
+        XCTAssertTrue(pill.waitForNonExistence(timeout: 5), "the pill goes 3 s after the last jump")
+    }
+
     /// Play/Pause during playback pauses and brings up the controls with focus on the timeline.
     func testPlayPauseFocusesTheTimeline() throws {
         guard let url = ProcessInfo.processInfo.environment["CONSOLATION_UI_NETWORK_URL"] else {

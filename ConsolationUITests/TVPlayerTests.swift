@@ -38,6 +38,32 @@ final class TVPlayerTests: TVRemoteTestCase {
                       "Back brings the pill and focuses Now Playing's item (focused: \(focusedLabels))")
     }
 
+    /// Back while the controls were briefly up used to pin them (focus left the video before the menu said it had
+    /// it), so the next time the player opened they never hid, and the video couldn't take focus. They now hide on
+    /// their own, with the video focused.
+    func testControlsHideOnTheirOwnAfterBackWhileTheyShowed() {
+        launchInThePlayer()
+        XCTAssertTrue(app.buttons["player.playPause"].exists, "the controls show as playback starts")
+        press(.menu)
+        XCTAssertTrue(waitForFocusID("pill.nowPlaying"), "Back opens the menu (focused: \(focusedLabels))")
+        press(.select)
+        XCTAssertTrue(waitForFocusID("player.video"), "choosing Now Playing focuses the video (\(focusedLabels))")
+        XCTAssertTrue(app.buttons["player.playPause"].waitForNonExistence(timeout: Self.autoHide),
+                      "the controls hide on their own")
+        assertFocus("player.video", "the video keeps focus")
+    }
+
+    /// Left and right on a stream that can't seek do nothing: no pill, no controls, focus stays on the video.
+    func testLeftAndRightDoNothingWhereTheStreamCantSeek() {
+        launchInThePlayer()
+        Thread.sleep(forTimeInterval: Self.autoHide)
+        press(.right)
+        press(.left)
+        XCTAssertFalse(app.descendants(matching: .any)["player.jump"].exists, "no jump pill")
+        XCTAssertFalse(app.buttons["player.playPause"].exists, "the controls stay hidden")
+        assertFocus("player.video", "the video keeps focus")
+    }
+
     func testSelectShowsTheControlsWithFocusAndBackHidesThem() {
         launchInThePlayer()
         Thread.sleep(forTimeInterval: Self.autoHide)

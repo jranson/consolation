@@ -76,6 +76,8 @@ struct RootView: View {
             // Opening the player in a window brings the video to it.
             if newValue == .nowPlaying, session.isActive {
                 session.showVideo(in: shell.id, fills: shell.fillsView)
+                // Coming from another pane, focus isn't in the controls: they show briefly and hide on their own.
+                session.unpinControls()
                 session.showControlsBriefly()
             }
             if session.videoWindow == shell.id { session.isFullScreen = newValue == .nowPlaying }

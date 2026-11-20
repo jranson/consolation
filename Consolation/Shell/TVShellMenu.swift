@@ -79,21 +79,12 @@ struct TVMenu<Item: PillItem>: View {
     }
 }
 
-/// The time, in a Liquid Glass capsule in the upper right while the menu is open. Never focusable.
+/// The time, in the upper right while the menu is open.
 struct TVMenuClock: View {
     var body: some View {
         TimelineView(.everyMinute) { context in
-            Text(context.date, style: .time)
-                .font(.callout.weight(.semibold))
-                .monospacedDigit()
-                .lineLimit(1)
-                .fixedSize()
-                .padding(.horizontal, 22)
-                .padding(.vertical, 12)
-                .glassEffect(.regular, in: .capsule)
-                .accessibilityIdentifier("menu.clock")
+            CornerPill(text: Text(context.date, style: .time), identifier: "menu.clock")
         }
-        .allowsHitTesting(false)
     }
 }
 

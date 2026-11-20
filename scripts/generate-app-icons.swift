@@ -10,7 +10,8 @@
 //                                          every run; anything else set in Icon Composer (glass, shadow, position) is
 //                                          kept.
 //
-// tvOS uses a layered (parallax) image stack, drawn from the vectors at each pixel size:
+// tvOS uses a layered (parallax) image stack, drawn from the vectors at each pixel size, with the television widened
+// until its tube is 16:9 (the antenna and the screen's glyph are not stretched):
 //
 //   Consolation/Assets.xcassets/App Icon & Top Shelf Image.brandassets
 //
@@ -32,11 +33,14 @@ let iconDocument = "Consolation/AppIcon.icon"
 let brandAssets = "Consolation/Assets.xcassets/App Icon & Top Shelf Image.brandassets"
 /// The group that holds what is shown on the television's screen; it becomes the front parallax layer on tvOS.
 let screenGlyphID = "app-icon-screen-glyph"
+/// The path that draws the cabinet with the tube cut out of it; tvOS widens it until the tube is 16:9.
+let cabinetID = "cabinet"
+let tvTubeAspect = 16.0 / 9.0
 /// Icon Composer: the foreground's scale and downward shift (negative is up) on the 1024 canvas, used when the
 /// document is first created. They keep the television clear of the edges and the antenna tips inside the corners.
 let iconForegroundScale = 0.82
 let iconForegroundOffset = -6.0
-/// tvOS: the side of the (square) foreground as a fraction of the image's height. Layers grow and shift as the icon
+/// tvOS: the height of the foreground's canvas as a fraction of the image's height. Layers grow and shift as the icon
 /// is focused, so the television stays well inside the edges.
 let tvForegroundFraction = 0.86
 let topShelfForegroundFraction = 0.8
@@ -145,8 +149,9 @@ func writeJSON(_ object: Any, to path: String) throws {
 
 struct Layer {
     var image: NSImage
-    /// The side of the centered square the image is drawn in, as a fraction of the canvas height; nil fills the canvas.
-    var squareFraction: Double?
+    /// The height the image is drawn at, centered and in its own proportions, as a fraction of the canvas height;
+    /// nil stretches it over the canvas.
+    var heightFraction: Double?
 }
 
 func writePNG(_ layers: [Layer], width: Int, height: Int, to path: String) throws {
@@ -160,9 +165,10 @@ func writePNG(_ layers: [Layer], width: Int, height: Int, to path: String) throw
     NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
     for layer in layers {
         var rect = CGRect(x: 0, y: 0, width: width, height: height)
-        if let fraction = layer.squareFraction {
-            let side = Double(height) * fraction
-            rect = CGRect(x: (Double(width) - side) / 2, y: (Double(height) - side) / 2, width: side, height: side)
+        if let fraction = layer.heightFraction, layer.image.size.height > 0 {
+            let tall = Double(height) * fraction
+            let wide = tall * layer.image.size.width / layer.image.size.height
+            rect = CGRect(x: (Double(width) - wide) / 2, y: (Double(height) - tall) / 2, width: wide, height: tall)
         }
         layer.image.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1)
     }
@@ -234,11 +240,120 @@ func writeIconDocument(background: XMLDocument, foreground: XMLDocument) throws 
     print("Wrote \(iconDocument)")
 }
 
+// MARK: - Widescreen television (tvOS)
+
+/// One command of a path made of absolute M, L, C and Z commands, which is all Pixelmator Pro exports.
+struct PathCommand {
+    var letter: String
+    var points: [CGPoint]
+}
+
+func pathCommands(of element: XMLElement) throws -> [PathCommand] {
+    var commands: [(letter: String, numbers: [Double])] = []
+    let data = element.attribute(forName: "d")?.stringValue ?? ""
+    for token in data.split(whereSeparator: { $0 == " " || $0 == "," || $0.isNewline }) {
+        if ["M", "L", "C", "Z"].contains(String(token)) {
+            commands.append((String(token), []))
+        } else if let number = Double(token), !commands.isEmpty {
+            commands[commands.count - 1].numbers.append(number)
+        } else {
+            throw Failure(description: "\(foregroundSource): unsupported path data '\(token)' in the cabinet")
+        }
+    }
+    return commands.map { command in
+        let pairs = stride(from: 0, to: command.numbers.count - 1, by: 2)
+        return PathCommand(letter: command.letter, points: pairs.map {
+            CGPoint(x: command.numbers[$0], y: command.numbers[$0 + 1])
+        })
+    }
+}
+
+/// The bounding boxes of a path's subpaths, with the curves sampled.
+func subpathBounds(of commands: [PathCommand]) -> [CGRect] {
+    var boxes: [CGRect] = []
+    var current = CGPoint.zero
+    func include(_ point: CGPoint) {
+        let box = CGRect(origin: point, size: .zero)
+        boxes[boxes.count - 1] = boxes[boxes.count - 1].isNull ? box : boxes[boxes.count - 1].union(box)
+    }
+    for command in commands where !command.points.isEmpty {
+        if command.letter == "M" { boxes.append(.null) }
+        guard !boxes.isEmpty else { continue }
+        if command.letter == "C" {
+            for index in stride(from: 0, to: command.points.count - 2, by: 3) {
+                let (one, two, end) = (command.points[index], command.points[index + 1], command.points[index + 2])
+                for step in 1...32 {
+                    let time = Double(step) / 32, rest = 1 - time
+                    let weights = [rest * rest * rest, 3 * rest * rest * time, 3 * rest * time * time,
+                                   time * time * time]
+                    include(CGPoint(
+                        x: weights[0] * current.x + weights[1] * one.x + weights[2] * two.x + weights[3] * end.x,
+                        y: weights[0] * current.y + weights[1] * one.y + weights[2] * two.y + weights[3] * end.y
+                    ))
+                }
+                current = end
+            }
+        } else {
+            command.points.forEach(include)
+            current = command.points[command.points.count - 1]
+        }
+    }
+    return boxes
+}
+
+/// The tube is the cabinet's inner subpath.
+func tubeBounds(of foreground: XMLDocument) throws -> CGRect {
+    guard let cabinet = foreground.rootElement()?.descendant(withID: cabinetID) else {
+        throw Failure(description: "\(foregroundSource): no visible '\(cabinetID)' path")
+    }
+    let boxes = subpathBounds(of: try pathCommands(of: cabinet))
+    guard boxes.count >= 2, let tube = boxes.min(by: { $0.width * $0.height < $1.width * $1.height }) else {
+        throw Failure(description: "\(foregroundSource): '\(cabinetID)' needs the tube as its own subpath")
+    }
+    return tube
+}
+
+/// How much wider the cabinet must be for the tube to reach `tvTubeAspect`.
+func widescreenExtraWidth(of foreground: XMLDocument) throws -> Double {
+    let tube = try tubeBounds(of: foreground)
+    return max(tube.height * tvTubeAspect - tube.width, 0)
+}
+
+/// A copy with the cabinet widened by `extraWidth` and the canvas grown to match. The cabinet is cut at the tube's
+/// center and each half moved outwards, so its corners and the tube's keep their shape; nothing is stretched, and
+/// the antenna and the screen's glyph stay where they are, in the middle.
+func widescreen(_ source: XMLDocument, extraWidth: Double) throws -> XMLDocument {
+    guard let document = source.copy() as? XMLDocument, let root = document.rootElement() else {
+        throw Failure(description: "can't copy an SVG layer")
+    }
+    if let cabinet = root.descendant(withID: cabinetID) {
+        let center = try tubeBounds(of: document).midX
+        let widened = try pathCommands(of: cabinet).map { command -> String in
+            let moved = command.points.map { point in
+                String(format: "%.4f %.4f", point.x + (point.x < center ? -extraWidth : extraWidth) / 2, point.y)
+            }
+            return ([command.letter] + moved).joined(separator: " ")
+        }
+        cabinet.attribute(forName: "d")?.stringValue = widened.joined(separator: " ")
+    }
+    let width = Double(root.attribute(forName: "width")?.stringValue ?? "") ?? 1024
+    let height = Double(root.attribute(forName: "height")?.stringValue ?? "") ?? 1024
+    for (name, value) in [
+        ("width", String(format: "%.4f", width + extraWidth)),
+        ("viewBox", String(format: "%.4f 0 %.4f %.4f", -extraWidth / 2, width + extraWidth, height))
+    ] {
+        root.removeAttribute(forName: name)
+        root.addAttribute(XMLNode.attribute(withName: name, stringValue: value) as? XMLNode ?? XMLNode())
+    }
+    return document
+}
+
 // MARK: - Layered image stack (tvOS)
 
 func writeBrandAssets(background: XMLDocument, foreground: XMLDocument) throws {
-    let back = Layer(image: try image(from: background), squareFraction: nil)
-    let whole = try image(from: foreground)
+    let back = Layer(image: try image(from: background), heightFraction: nil)
+    let extraWidth = try widescreenExtraWidth(of: foreground)
+    let whole = try image(from: try widescreen(foreground, extraWidth: extraWidth))
     var stack: [(name: String, layer: Layer)] = [("Back", back)]
     if foreground.rootElement()?.descendant(withID: screenGlyphID) != nil {
         // Three layers: the screen's glyph floats in front of the television.
@@ -246,10 +361,12 @@ func writeBrandAssets(background: XMLDocument, foreground: XMLDocument) throws {
             element.descendant(withID: screenGlyphID) == nil && !element.isInside(elementWithID: screenGlyphID)
         }
         let cabinet = try visibleSVG(at: foregroundSource) { $0.identifier == screenGlyphID }
-        stack.insert(("Middle", Layer(image: try image(from: cabinet), squareFraction: tvForegroundFraction)), at: 0)
-        stack.insert(("Front", Layer(image: try image(from: glyph), squareFraction: tvForegroundFraction)), at: 0)
+        for (name, document) in [("Middle", cabinet), ("Front", glyph)] {
+            let layerImage = try image(from: try widescreen(document, extraWidth: extraWidth))
+            stack.insert((name, Layer(image: layerImage, heightFraction: tvForegroundFraction)), at: 0)
+        }
     } else {
-        stack.insert(("Front", Layer(image: whole, squareFraction: tvForegroundFraction)), at: 0)
+        stack.insert(("Front", Layer(image: whole, heightFraction: tvForegroundFraction)), at: 0)
     }
 
     try? FileManager.default.removeItem(atPath: brandAssets)
@@ -259,7 +376,7 @@ func writeBrandAssets(background: XMLDocument, foreground: XMLDocument) throws {
         ("Top Shelf Image Wide.imageset", "top-shelf-image-wide", 2320, 720, [1, 2], false),
         ("Top Shelf Image.imageset", "top-shelf-image", 1920, 720, [1, 2], false)
     ]
-    let topShelf = [back, Layer(image: whole, squareFraction: topShelfForegroundFraction)]
+    let topShelf = [back, Layer(image: whole, heightFraction: topShelfForegroundFraction)]
     for part in parts {
         let directory = "\(brandAssets)/\(part.name)"
         let base = (width: part.width, height: part.height)

@@ -93,6 +93,17 @@ struct NowPlayingChrome: View {
                     .padding(.leading, 100)
             }
         }
+        #if !os(tvOS)
+        // Apple TV draws it with the menu, where the time shows (RootViewTelevision).
+        .overlay(alignment: .topTrailing) {
+            if let jump = session.jumps.current, !session.isMultiView {
+                JumpPill(jump: jump)
+                    .padding(24)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.smooth(duration: 0.25), value: session.jumps.current == nil)
+        #endif
         .overlay(alignment: .top) {
             if session.bannerVisible, let channel = session.currentChannel {
                 ChannelBanner(channel: channel)
@@ -129,6 +140,13 @@ struct NowPlayingChrome: View {
         // Outside the focusable video, so the remote can move focus into them (a focus section of their own).
         .overlay(alignment: .bottom) { remoteControls }
         .onChange(of: focused) { _, videoFocused in controlsFocusChanged(videoFocused: videoFocused) }
+        // The menu taking focus (Back on the video) puts the controls away with the video behind it.
+        .onChange(of: shell.pillHasFocus) { _, pillFocused in
+            if pillFocused, session.controlsVisible { session.hideControls() }
+        }
+        // Left and right on the video jump back and ahead, while neither the menu nor the controls have focus.
+        .remoteArrowJumps(isEnabled: focused && session.isActive && !session.isMultiView && !session.controlsPinned
+                          && !shell.pillHasFocus && !session.numberPadVisible) { session.jump(by: $0) }
         #endif
         .onAppear {
             // Not while the pill has focus (Apple TV: moving through the pill selects Now Playing).
@@ -211,20 +229,51 @@ extension NowPlayingChrome {
                     focusControlsWhenShown = false
                     Task { @MainActor in controlsFocused = true }
                 }
+                // While they stay up, something must have focus, or Back would leave the app.
+                .task(id: session.controlsPinned) { await keepFocusWhilePinned() }
                 .transition(.opacity)
         }
     }
 
-    /// Focus left the video for the controls: keep them up. Back on the video: let them hide on their own.
+    /// Focus left the video for the controls: keep them up. Back on the video: let them hide on their own. Focus
+    /// leaving the video for the menu (Back) reaches here before the shell says the menu has it, so the pin waits
+    /// for focus to settle, and only pins when focus is really somewhere other than the video and the menu.
     fileprivate func controlsFocusChanged(videoFocused: Bool) {
         guard session.isActive, !session.numberPadVisible else { return }
         if videoFocused {
             session.unpinControls()
             if session.controlsVisible { session.showControlsBriefly() }
-        } else if session.controlsVisible, !shell.pillHasFocus {
-            session.pinControls()
+            return
+        }
+        guard session.controlsVisible, !shell.pillHasFocus else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: Self.focusSettle)
+            guard session.isActive, session.controlsVisible, !focused, !shell.pillHasFocus,
+                  !session.numberPadVisible else { return }
+            if TVFocusCheck.appHasFocus {
+                session.pinControls()
+            } else {
+                // Focus went nowhere: back to the video, and the controls hide on their own.
+                session.unpinControls()
+                focused = true
+                session.showControlsBriefly()
+            }
         }
     }
+
+    /// The pinned controls lost focus (the focused button went away, e.g. Go to Live once live): focus returns to
+    /// the video and the controls hide on their own.
+    fileprivate func keepFocusWhilePinned() async {
+        while session.controlsPinned, !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(1))
+            guard session.controlsPinned, !Task.isCancelled, !TVFocusCheck.appHasFocus else { continue }
+            session.unpinControls()
+            focused = true
+            session.showControlsBriefly()
+        }
+    }
+
+    private static let focusSettle: Duration = .milliseconds(150)
     #endif
 
     /// Back in the player: Apple TV moves focus to the pill (Back there leaves the app, as tvOS expects); elsewhere

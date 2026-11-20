@@ -8,9 +8,6 @@
 //
 
 import SwiftUI
-#if os(tvOS)
-import UIKit
-#endif
 
 extension RootView {
     /// Apple TV uses the collapsible menu instead of the pill.
@@ -62,10 +59,18 @@ extension RootView {
                     .padding(.leading, Self.tvPillInset)
                     .transition(.opacity)
             }
+            // Where the time shows with the menu open: a run of left and right jumps in the player.
+            if !isMenuOpen, inPlayer, let jump = session.jumps.current {
+                JumpPill(jump: jump)
+                    .padding(.trailing, Self.tvPillInset)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .transition(.opacity)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .ignoresSafeArea(.container, edges: .horizontal)
         .animation(.smooth(duration: 0.25), value: isMenuOpen)
+        .animation(.smooth(duration: 0.25), value: session.jumps.current == nil)
     }
 
     /// Select in the open menu: switch to `item` and close the menu, moving focus into the pane. A pane with nothing
@@ -108,16 +113,8 @@ extension RootView {
     /// back would land on the same screen, with no way out.
     func openMenuIfFocusIsLost() async {
         try? await Task.sleep(for: .milliseconds(600))
-        guard !Task.isCancelled, scenePhase == .active, !isMenuOpen, !Self.appHasFocus else { return }
+        guard !Task.isCancelled, scenePhase == .active, !isMenuOpen, !TVFocusCheck.appHasFocus else { return }
         shell.focusPill()
-    }
-
-    /// Whether any of the app's windows has a focused item.
-    private static var appHasFocus: Bool {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap(\.windows)
-            .contains { UIFocusSystem.focusSystem(for: $0)?.focusedItem != nil }
     }
 
     /// At launch focus goes into the restored pane, or into the menu when the pane has nothing to focus.

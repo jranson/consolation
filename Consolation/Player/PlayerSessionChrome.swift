@@ -31,6 +31,25 @@ extension PlayerSession {
         controlsVisible = false
     }
 
+    /// Playback stopped: nothing of the last stream's chrome carries over to the next. A pin left behind (Stop with
+    /// focus in the controls) kept the next stream's controls up for good, with the video unable to take focus.
+    func resetChrome() {
+        chromeTask?.cancel()
+        bannerTask?.cancel()
+        controlsVisible = false
+        controlsPinned = false
+        bannerVisible = false
+        timelineFocusRequested = false
+        jumps.clear()
+    }
+
+    /// Left or right on the video, or ← and → on a keyboard (`seconds` negative goes back), where the stream can seek
+    /// that way.
+    func jump(by seconds: Double) {
+        guard !isMultiView, let engine else { return }
+        jumps.jump(engine, by: seconds)
+    }
+
     /// Apple TV: shows the controls and moves focus into them.
     func requestControlsFocus() {
         controlsFocusRequest += 1

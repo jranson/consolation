@@ -75,6 +75,8 @@ final class PlayerSession {
     }
     var controlsVisible = false
     var bannerVisible = false
+    /// The run of left and right jumps in the upper-right pill.
+    let jumps = PlaybackJumps()
     /// The Add Tile or Replace picker on screen, if any.
     var tilePicker: TilePickerRequest?
     /// A short note about multi-view ("Every tuner is in use"), shown over the player for a moment.
@@ -193,8 +195,7 @@ final class PlayerSession {
         tunerReleased = false
         releasedForBackground = false
         freezeFrame = nil
-        controlsVisible = false
-        bannerVisible = false
+        resetChrome()
         PlaybackAudioSession.deactivate()
     }
 

@@ -12,7 +12,8 @@ import AppKit
 #endif
 
 extension View {
-    /// Space/K play-pause, ↑/↓ channel up/down, "-" previous channel, M mute, Esc back. On tvOS: the remote's
+    /// Space/K play-pause, ↑/↓ channel up/down, ←/→ jump 10 s (30 s with Shift), "-" previous channel, M mute, Esc
+    /// back. On tvOS: the remote's
     /// Play/Pause, up/down and Back (Menu) buttons.
     /// `onSelect`: the remote's Select on Apple TV (it shows the controls there).
     /// `isEnabled` false: the player takes no focus or keys (multi-view's tiles have them).
@@ -52,7 +53,8 @@ private struct PlayerKeyCommandsModifier: ViewModifier {
                 switch direction {
                 case .up: session.channelUp()
                 case .down: session.channelDown()
-                default: session.showControlsBriefly()
+                // Left and right jump back and ahead (`remoteArrowJumps`, which reads Shift on a keyboard).
+                default: break
                 }
             }
             .onExitCommand(perform: onBack)
@@ -105,14 +107,10 @@ private struct PlayerKeyCommandsModifier: ViewModifier {
                 VideoStatsUserDefaults.toggleShown()
                 return .handled
             }
-            .onKeyPress(.leftArrow) {
-                session.engine?.skip(by: PlayerControls.backStep)
-                session.showControlsBriefly()
-                return .handled
-            }
-            .onKeyPress(.rightArrow) {
-                session.engine?.skip(by: PlayerControls.forwardStep)
-                session.showControlsBriefly()
+            // ← and → jump 10 s back and ahead, 30 s with Shift, adding up in the jump pill.
+            .onKeyPress(keys: [.leftArrow, .rightArrow]) { press in
+                let step = press.modifiers.contains(.shift) ? PlaybackJump.largeStep : PlaybackJump.step
+                session.jump(by: press.key == .leftArrow ? -step : step)
                 return .handled
             }
             #if os(macOS)
