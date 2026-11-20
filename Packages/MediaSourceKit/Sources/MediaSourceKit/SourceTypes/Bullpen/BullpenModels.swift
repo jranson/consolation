@@ -15,6 +15,8 @@ public nonisolated enum BullpenVocabulary {
     public static let channels = relation("channels")
     public static let library = relation("library")
     public static let recordings = relation("recordings")
+    /// A recording's publication links its recording resource (which carries its ad breaks).
+    public static let recording = relation("recording")
     public static let events = relation("events")
     public static let oidcIssuer = relation("oidc-issuer")
     public static let serviceMeta = "service-meta"
@@ -90,6 +92,31 @@ public nonisolated struct BullpenChannel: Hashable, Sendable, Decodable {
             }
         }
         return nil
+    }
+}
+
+/// `GET /api/v1/recordings/{id}`: what a player reads of one recording, its ad breaks.
+public nonisolated struct BullpenRecording: Sendable, Decodable {
+    /// What ad detection found; nil until detection has been asked for.
+    public var adBreaks: AdBreakList?
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: JSONKey.self)
+        adBreaks = container.nested("adBreaks").map(Self.adBreaks)
+    }
+
+    /// `pending` may find more; `complete`, `failed` and `cancelled` (and anything new) keep what was found, which a
+    /// repeat detection leaves in place until it has its own.
+    static func adBreaks(_ container: KeyedDecodingContainer<JSONKey>) -> AdBreakList {
+        let breaks = container.array("breaks", of: Range.self)
+            .filter { $0.end > $0.start }
+            .map { AdBreak(start: $0.start, end: $0.end) }
+        return AdBreakList(breaks: breaks, isPending: container.string("status") == "pending")
+    }
+
+    private nonisolated struct Range: Decodable {
+        var start: Double
+        var end: Double
     }
 }
 

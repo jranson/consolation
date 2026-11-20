@@ -31,7 +31,7 @@ Consolation makes no network connections until you add a source or play a stream
 
 ### Library servers (Bullpen)
 
-When you add a Bullpen server, Consolation reads its catalog, library, channels and recordings, and plays its streams, only from the address you added. "Find Servers on This Network" browses your local network for Bullpen servers (Bonjour) only when you choose it. A server's catalog can link artwork or media on other hosts; Consolation doesn't load artwork from any host but the server's own, so a card without it shows a generated picture instead. Consolation sends a server nothing about you beyond the requests themselves, and never writes to it. A bookmark to a YouTube video plays as described under [YouTube links](#youtube-links).
+When you add a Bullpen server, Consolation reads its catalog, library, channels and recordings (including the commercial breaks it found in a recording you play), and plays its streams, only from the address you added. "Find Servers on This Network" browses your local network for Bullpen servers (Bonjour) only when you choose it. A server's catalog can link artwork or media on other hosts; Consolation doesn't load artwork from any host but the server's own, so a card without it shows a generated picture instead. Consolation sends a server nothing about you beyond the requests themselves, and never writes to it. A bookmark to a YouTube video plays as described under [YouTube links](#youtube-links).
 
 ### YouTube links
 

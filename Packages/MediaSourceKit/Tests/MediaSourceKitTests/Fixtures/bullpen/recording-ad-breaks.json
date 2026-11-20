@@ -1,0 +1,38 @@
+{
+  "id": "01a16250-1111-7000-8000-000000000043",
+  "state": "completed",
+  "channel": "bullpen:ch/antenna-9-1",
+  "program": "crid://centennialoss.org/bullpen/ep/01a16244-f82a-700d-a2d5-287f2fe44f6c",
+  "series": "crid://centennialoss.org/bullpen/series/01a16244-f82a-700d-a2d5-51c2a0000001",
+  "title": "Example Show",
+  "episodeTitle": "The Second One",
+  "season": 1,
+  "episode": 2,
+  "from": "2026-10-12T20:00:00Z",
+  "until": "2026-10-12T21:00:00Z",
+  "actualStart": "2026-10-12T20:00:00Z",
+  "actualEnd": "2026-10-12T21:00:00Z",
+  "storage": "local",
+  "bytes": 2147483648,
+  "adBreaks": {
+    "status": "complete",
+    "breaks": [
+      { "start": 612.48, "end": 792.52 },
+      { "start": 1500.016, "end": 1650.149 }
+    ],
+    "duration": 3600.021,
+    "detectedAt": "2026-10-12T21:02:14Z"
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "/api/v1/recordings/01a16250-1111-7000-8000-000000000043"
+    },
+    {
+      "rel": "alternate",
+      "href": "/recordings/local/01a16250-1111-7000-8000-000000000043/master.m3u8",
+      "type": "application/vnd.apple.mpegurl"
+    }
+  ],
+  "manual": true
+}

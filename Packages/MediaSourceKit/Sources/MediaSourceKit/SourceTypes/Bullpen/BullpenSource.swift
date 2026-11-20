@@ -10,6 +10,7 @@ import Foundation
 ///   play their acquisition link; one still being written grows and starts at its beginning.
 /// - Bookmarks: a publication whose only video is a link to a hosting service (a YouTube video) plays as a
 ///   `.hostedVideo` descriptor, which the host shows in that service's embedded player.
+/// - Ad breaks: a recording's suspected commercial breaks come from its recording resource, read when it plays.
 /// - Read-only. It connects only to the server's own origin: artwork on other hosts is left out, so cards draw
 ///   their own faces. Sign-in (an `oidc-issuer` in the catalog) isn't built yet; such a server reports
 ///   `authRequired`.
@@ -122,6 +123,27 @@ public actor BullpenSource: LibraryServerSource {
         if let start = request.start { descriptor.start = start }
         return descriptor
     }
+
+    /// A recording's ad breaks, from its recording resource: the publication's `rel/recording` link, or for a
+    /// recording without one, `api/v1/recordings/<id>` by its `urn:uuid:` identifier. Only on the server's own
+    /// origin; nothing for anything that isn't a recording.
+    public func adBreaks(for itemID: MediaItemID) async throws -> AdBreakList {
+        guard itemID.source == id else { throw MediaSourceError.wrongSource(itemID) }
+        guard let (publication, base) = try await publication(for: itemID),
+              let url = recordingURL(publication, base: base), Self.isSameOrigin(url, client.baseURL)
+        else { return .none }
+        return try await tracking { try await client.recording(at: url) }.adBreaks ?? .none
+    }
+
+    func recordingURL(_ publication: OPDSPublication, base: URL) -> URL? {
+        if let link = publication.link(BullpenVocabulary.recording) { return link.url(relativeTo: base) }
+        let metadata = publication.metadata
+        guard metadata.recordedAt != nil || metadata.inProgress, let identifier = metadata.identifier,
+              identifier.hasPrefix(Self.uuidPrefix) else { return nil }
+        return try? client.resolve("api/v1/recordings/" + identifier.dropFirst(Self.uuidPrefix.count))
+    }
+
+    static let uuidPrefix = "urn:uuid:"
 
     static func liveDescriptor(url: URL, type: String?) -> PlaybackDescriptor {
         let container = OPDSPlayback.container(for: OPDSLink(href: url.absoluteString, type: type).mediaType)

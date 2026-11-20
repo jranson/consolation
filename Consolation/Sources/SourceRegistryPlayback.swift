@@ -66,6 +66,13 @@ extension SourceRegistry {
                                   input: input))
     }
 
+    /// The suspected commercial breaks in a library item (a Bullpen recording), from its server; none when the
+    /// server has none or can't be read.
+    func adBreaks(for id: MediaItemID) async -> AdBreakList {
+        guard let source = librarySource(id.source) else { return .none }
+        return (try? await source.adBreaks(for: id)) ?? .none
+    }
+
     /// The URL behind a Quick Play item, from the history (the item itself never holds it).
     func quickPlayURL(for id: MediaItemID) -> URL? {
         guard id.source == quickPlay.id else { return nil }

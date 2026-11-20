@@ -42,6 +42,8 @@ final class AppModel {
     /// The configured sources (MediaSourceKit) and their status. Builds them without connecting.
     let registry: SourceRegistry
     let home: HomeModel
+    /// "Skip Commercials" during a library item's suspected ad breaks (Bullpen recordings).
+    let adBreaks: AdBreakSkipper
     /// The one owner of game-controller handlers (iPhone, iPad, Mac). Attaches nothing until `start()`.
     let controllers = GameControllers()
     #if !os(tvOS)
@@ -57,6 +59,7 @@ final class AppModel {
                                         snapshotStore: FileHomeSnapshotStore(fileURL: Self.homeSnapshotURL))
         registry = SourceRegistry(store: sources, history: history, lineups: lineups, broker: tunerBroker,
                                   composer: homeShelves, favorites: favorites, resumePositions: resumePositions)
+        adBreaks = AdBreakSkipper { [registry] id in await registry.adBreaks(for: id) }
         home = HomeModel(composer: homeShelves, registry: registry, favorites: favorites,
                          resumePositions: resumePositions, settings: homeSettings)
         let factory = EngineFactory(preferences: preferences, broker: tunerBroker)
@@ -109,6 +112,7 @@ extension View {
             .environment(app.favorites)
             .environment(app.liveTV)
             .environment(app.session)
+            .environment(app.adBreaks)
             .environment(app.hostedVideos)
             .environment(app.registry)
             .environment(app.localNetwork)

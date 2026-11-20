@@ -1,6 +1,7 @@
 import Foundation
 
-/// The REST calls a Bullpen player makes: the API catalog, the server document, channels and the OPDS library.
+/// The REST calls a Bullpen player makes: the API catalog, the server document, channels, a recording (its ad
+/// breaks) and the OPDS library.
 /// Read-only. Decoding runs off the caller's actor.
 public nonisolated struct BullpenClient: Sendable {
     public let baseURL: URL
@@ -45,6 +46,11 @@ public nonisolated struct BullpenClient: Sendable {
     @concurrent
     public func channels(at url: URL) async throws -> [BullpenChannel] {
         try await decode(BullpenChannelList.self, at: url, accept: "application/json").channels
+    }
+
+    @concurrent
+    public func recording(at url: URL) async throws -> BullpenRecording {
+        try await decode(BullpenRecording.self, at: url, accept: "application/json")
     }
 
     @concurrent

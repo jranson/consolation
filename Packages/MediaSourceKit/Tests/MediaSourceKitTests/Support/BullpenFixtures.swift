@@ -36,7 +36,9 @@ enum BullpenFixture {
             "/api/v1/channels": try data("channels"),
             "/opds/root.json": try data("opds-root"),
             "/opds/recordings.json": try data("opds-recordings"),
-            "/opds/recordings.json?cursor=EXAMPLE-CURSOR": emptyPage
+            "/opds/recordings.json?cursor=EXAMPLE-CURSOR": emptyPage,
+            // The Pilot's recording resource, with the ad breaks Bullpen's fixture shows.
+            "/api/v1/recordings/01a16250-1111-7000-8000-000000000042": try data("recording-ad-breaks")
         ])
     }
 

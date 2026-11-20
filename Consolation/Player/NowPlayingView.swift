@@ -41,6 +41,7 @@ struct NowPlayingView: View {
 /// the player's keyboard and remote input.
 struct NowPlayingChrome: View {
     @Environment(PlayerSession.self) private var session
+    @Environment(AdBreakSkipper.self) private var adBreaks
     @Environment(PlaybackPreferences.self) private var preferences
     @Environment(ShellModel.self) private var shell
     @FocusState private var focused: Bool
@@ -136,6 +137,8 @@ struct NowPlayingChrome: View {
         // Multi-view: the chrome takes no focus at all (as a focus target over the tiles it kept the focus engine
         // from moving between them).
         .modifier(ChromeFocus(focused: $focused, isEnabled: !session.isMultiView))
+        // Outside the focusable video, so the remote can move focus to it.
+        .skipCommercials(videoFocus: $focused)
         #if os(tvOS)
         // Outside the focusable video, so the remote can move focus into them (a focus section of their own).
         .overlay(alignment: .bottom) { remoteControls }
@@ -248,8 +251,9 @@ extension NowPlayingChrome {
         guard session.controlsVisible, !shell.pillHasFocus else { return }
         Task { @MainActor in
             try? await Task.sleep(for: Self.focusSettle)
+            // Skip Commercials taking focus as a break starts isn't a move into the controls.
             guard session.isActive, session.controlsVisible, !focused, !shell.pillHasFocus,
-                  !session.numberPadVisible else { return }
+                  !session.numberPadVisible, !adBreaks.buttonHasFocus else { return }
             if TVFocusCheck.appHasFocus {
                 session.pinControls()
             } else {
