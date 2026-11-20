@@ -1,0 +1,37 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "srgb:0.98039,0.42353,0.92157,1.00000",
+      "srgb:0.54510,0.00000,0.63922,1.00000"
+    ]
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "glass" : true,
+          "image-name" : "foreground.svg",
+          "name" : "television",
+          "position" : {
+            "scale" : 0.81999999999999995,
+            "translation-in-points" : [
+              0,
+              -6
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : false,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : "shared"
+  }
+}

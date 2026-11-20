@@ -451,7 +451,7 @@
 			baseConfigurationReference = D32ED7242F8B8CB000B6A9BA /* Consolation/Version.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=appletv*]" = "";
+				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=appletv*]" = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
@@ -517,7 +517,7 @@
 			baseConfigurationReference = D32ED7242F8B8CB000B6A9BA /* Consolation/Version.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=appletv*]" = "";
+				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=appletv*]" = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;

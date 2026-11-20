@@ -43,13 +43,10 @@ SIM_TV ?= Apple TV 4K (3rd generation) (at 1080p)
 IOS_SIM_APP := build/$(APP_NAME)-iOS.app
 TVOS_SIM_APP := build/$(APP_NAME)-tvOS.app
 
-APPICON_DIR := $(APP_DIR)/Assets.xcassets/AppIcon.appiconset
-APPICON_SRC := $(APPICON_DIR)/AppIcon_1024.png
-APPICON_SIZES := 16 32 64 128 256 512
-APPICON_BG := assets/app-icon-background-large.png
-APPICON_TRANSPARENT_SRC := assets/app-icon-large-transparent.png
+APPICON_DOCUMENT := $(APP_DIR)/AppIcon.icon
 APPICON_LARGE := assets/app-icon-large.png
 APPICON_PREVIEW := assets/app-icon.png
+ICTOOL := $(shell xcode-select -p)/../Applications/Icon Composer.app/Contents/Executables/ictool
 
 # Build info: BuildInfo.generated.swift feeds the About screen. The checked-in copy says "localdev"; CI rewrites it.
 # Override any value with environment variables, e.g.:
@@ -336,32 +333,19 @@ test-ui-tvos: ffmpeg
 	xcodebuild -project $(PROJECT) -scheme ConsolationUITests -configuration Debug -derivedDataPath $(DERIVED_DATA) \
 		-destination "id=$$id" test $(NO_SIGNING)
 
-# Generate app icon assets:
-#   1. Composite assets/app-icon-large-transparent.png over assets/app-icon-background-large.png
-#      -> assets/app-icon-large.png
-#   2. Resize the composite into the AppIcon asset catalog for macOS and iOS.
-#   3. Copy the generated 128x128 icon to assets/app-icon.png for docs/branding use.
+# Generate the app icons from assets/app-icon-background-large.svg and assets/app-icon-foreground.svg:
+#   1. scripts/generate-app-icons.swift writes the Icon Composer document (macOS, iOS, iPadOS) and the layered
+#      tvOS icon and Top Shelf images in the asset catalog.
+#   2. Icon Composer's ictool renders the document to assets/app-icon-large.png (1024) and assets/app-icon.png
+#      (256) for docs/branding use.
 generate-appicons:
-	@test -f $(APPICON_BG) || (echo "Missing: $(APPICON_BG)" && exit 1)
-	@test -f $(APPICON_TRANSPARENT_SRC) || (echo "Missing: $(APPICON_TRANSPARENT_SRC)" && exit 1)
-	@echo "Compositing app-icon-large-transparent.png onto app-icon-background-large.png -> app-icon-large.png"
-	@swift scripts/composite-app-icon.swift $(APPICON_BG) $(APPICON_TRANSPARENT_SRC) $(APPICON_LARGE)
-	@cp $(APPICON_LARGE) $(APPICON_SRC)
-	@for size in $(APPICON_SIZES); do \
-		echo "Creating AppIcon_$$size.png from AppIcon_1024.png"; \
-		if [ "$$size" = "16" ]; then \
-			sips --cropToHeightWidth 780 780 $(APPICON_SRC) --out /tmp/AppIcon_crop.png && \
-			sips -z 16 16 /tmp/AppIcon_crop.png --out $(APPICON_DIR)/AppIcon_16.png; \
-		elif [ "$$size" = "32" ]; then \
-			sips --cropToHeightWidth 880 880 $(APPICON_SRC) --out /tmp/AppIcon_crop.png && \
-			sips -z 32 32 /tmp/AppIcon_crop.png --out $(APPICON_DIR)/AppIcon_32.png; \
-		else \
-			sips -z $$size $$size --out $(APPICON_DIR)/AppIcon_$$size.png $(APPICON_SRC); \
-		fi; \
-	done
-	@cp $(APPICON_DIR)/AppIcon_128.png $(APPICON_PREVIEW)
-	@rm -f /tmp/AppIcon_crop.png
-	@echo "Done writing AppIcons and $(APPICON_PREVIEW)"
+	@swift scripts/generate-app-icons.swift
+	@test -x "$(ICTOOL)" || (echo "Missing Icon Composer's ictool (needs Xcode 26 or later): $(ICTOOL)" && exit 1)
+	@"$(ICTOOL)" $(APPICON_DOCUMENT) --export-image --output-file $(APPICON_LARGE) \
+		--platform macOS --rendition Default --width 1024 --height 1024 --scale 1 >/dev/null
+	@"$(ICTOOL)" $(APPICON_DOCUMENT) --export-image --output-file $(APPICON_PREVIEW) \
+		--platform macOS --rendition Default --width 256 --height 256 --scale 1 >/dev/null
+	@echo "Done writing $(APPICON_LARGE) and $(APPICON_PREVIEW)"
 
 reset-perms:
 	@tccutil reset Camera $(BUNDLE_ID)
